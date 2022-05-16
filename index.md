@@ -1,3 +1,11 @@
+*Lightbox Viewer* lets you simultaneously visualize changes in shader material settings under different lighting conditions.
+
+# Having issues? Join my Discord Server
+
+I will try to provide help on the #lightbox-viewer channel when I can.
+
+[Join the Invitation Discord (https://discord.gg/58fWAUTYF8)](https://discord.gg/58fWAUTYF8).
+
 # Usage
 
 ## Testing materials with Lightbox Viewer
