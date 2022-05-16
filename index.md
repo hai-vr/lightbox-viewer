@@ -46,7 +46,7 @@ Use the *Post Processing* checkbox to turn it on and off.
 
 ![image](https://user-images.githubusercontent.com/60819407/168622378-444d3c29-f6bc-44ae-aae3-8233ef6f1724.png)
 
-## Enable or Disable a lightbox
+## Disable a lightbox
 
 After pressing *Activate LightboxViewer*, the lightbox scene will show up in at the bottom of the hierarchy.
 
@@ -55,6 +55,12 @@ Expand the `Lightboxes` object. If you tag one of them as `EditorOnly`, the ligh
 <video controls width="816" autostart="false">
     <source src="https://hai-vr.github.io/lightbox-viewer/videos/sx_2022-05-16_17-32-21_n4FA3C76cb.mp4" type="video/mp4">
 </video>
+
+## Enable a lightbox
+
+Likewise, a lightbox can be enabled by marking it as `Untagged`. The default lightbox scene contains a hidden lightbox called *Spotlight Cookie* that you can enable this way.
+
+![image](https://user-images.githubusercontent.com/60819407/168635901-c1f1581f-e20e-496b-bca7-274f5b88db0e.png)
 
 # Advanced usage
 
