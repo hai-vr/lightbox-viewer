@@ -10,19 +10,25 @@ Then, press *Activate LightboxViewer*. You can now move the scene camera to refr
 
 While this mode is active, the editor may slow down. Press *Activate LightboxViewer* again when not in use to improve the performance of the editor.
 
-https://user-images.githubusercontent.com/60819407/168524490-2a707241-5886-419c-8a1f-c371dca79da2.mp4
+<video controls width="816" autostart="false">
+    <source src="https://hai-vr.github.io/lightbox-viewer/videos/sx_2022-05-16_07-18-28_Sda2clkyuk.mp4" type="video/mp4">
+</video>
 
 ## Testing in Play mode
 
 *Lightbox Viewer* can be used in Play mode. Press *Activate LightboxViewer* before entering Play mode.
 
-https://user-images.githubusercontent.com/60819407/168525049-d6769b9d-0645-4e65-8258-a441367b67ed.mp4
+<video controls width="816" autostart="false">
+    <source src="https://hai-vr.github.io/lightbox-viewer/videos/sx_2022-05-16_07-24-50_VDkm4dNnOs.mp4" type="video/mp4">
+</video>
 
 ## Post Processing
 
 If Post Processing is not installed, you can press *Install Post-processing*. This lets you test color grading, bloom, and other effects.
 
-https://user-images.githubusercontent.com/60819407/168525248-84a4dc17-df70-46e4-8365-e3ff81c4c6d3.mp4
+<video controls width="816" autostart="false">
+    <source src="https://hai-vr.github.io/lightbox-viewer/videos/sx_2022-05-16_07-27-19_5hudaArHip.mp4" type="video/mp4">
+</video>
 
 # Advanced usage
 
@@ -38,7 +44,9 @@ By default, the *Counter-rotate* option is enabled, which keeps the preview upri
 
 Press *Reset* to restore the view upright.
 
-https://user-images.githubusercontent.com/60819407/168527858-f9d0a2cf-3051-44cf-976a-b95d871cceb5.mp4
+<video controls width="816" autostart="false">
+    <source src="https://hai-vr.github.io/lightbox-viewer/videos/sx_2022-05-16_07-52-09_k7AkO3iYda.mp4" type="video/mp4">
+</video>
 
 # Create your own lightbox scene
 
