@@ -22,6 +22,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
         public bool counterRotate = true;
         public bool postProcessing = true;
         public bool advanced;
+        public float verticalDisplacement;
         private Vector2 _scrollPos;
         private int _generatedSize;
 
@@ -162,13 +163,24 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 advanced = EditorGUILayout.Foldout(advanced, "Advanced");
                 EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(postProcessing)));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(referenceCamera)));
+
+                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.Slider(serializedObject.FindProperty(nameof(verticalDisplacement)), 0, 2f);
+                EditorGUI.BeginDisabledGroup(verticalDisplacement == 0);
+                if (ColoredBgButton(verticalDisplacement != 0, Color.green, () => GUILayout.Button("Reset", GUILayout.Width(150))))
+                {
+                    serializedObject.FindProperty(nameof(verticalDisplacement)).floatValue = 0;
+                }
+                EditorGUI.EndDisabledGroup();
+                EditorGUILayout.EndHorizontal();
+
                 EditorGUI.BeginDisabledGroup(!_enabled);
                 if (GUILayout.Button("Realign"))
                 {
                     Realign();
                 }
                 EditorGUI.EndDisabledGroup();
-                headerLines += 4;
+                headerLines += 5;
             }
             else
             {
@@ -204,6 +216,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 ProjectRenderQueue.CounterRotate(counterRotate);
                 ProjectRenderQueue.Camera(referenceCamera);
                 ProjectRenderQueue.PostProcessing(postProcessing);
+                ProjectRenderQueue.VerticalDisplacement(verticalDisplacement);
             }
 
             var att = ProjectRenderQueue.Textures().ToArray();
@@ -387,6 +400,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
         private Quaternion _referentialQuaternion;
         private Camera _cameraOptional;
         private bool _postProcessing;
+        private float _verticalDisplacement;
 
         public LightboxViewerRenderQueue()
         {
@@ -525,7 +539,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
                     var lightboxIndex = _queue.Dequeue();
                     var currentLightbox = allApplicableLightboxes[lightboxIndex];
                     currentLightbox.SetActive(true);
-                    viewer.RenderNoAnimator(_lightboxIndexToTexture[lightboxIndex], currentLightbox, renderTexture, _referentialVector, _referentialQuaternion);
+                    viewer.RenderNoAnimator(_lightboxIndexToTexture[lightboxIndex], currentLightbox, renderTexture, _referentialVector, _referentialQuaternion, _verticalDisplacement);
                     currentLightbox.SetActive(false);
 
                     itemCount++;
@@ -653,6 +667,11 @@ namespace Hai.LightboxViewer.Scripts.Editor
             return AllLightboxes()
                 .Where(lightbox => !lightbox.CompareTag("EditorOnly"))
                 .ToArray();
+        }
+
+        public void VerticalDisplacement(float verticalDisplacement)
+        {
+            _verticalDisplacement = verticalDisplacement;
         }
     }
 }

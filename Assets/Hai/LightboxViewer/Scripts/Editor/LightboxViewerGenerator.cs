@@ -55,7 +55,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
             Object.DestroyImmediate(_camera.gameObject);
         }
 
-        public void RenderNoAnimator(Texture2D element, GameObject currentLightbox, RenderTexture renderTexture, Vector3 referentialVector, Quaternion referentialQuaternion)
+        public void RenderNoAnimator(Texture2D element, GameObject currentLightbox, RenderTexture renderTexture, Vector3 referentialVector, Quaternion referentialQuaternion, float verticalDisplacement)
         {
             var rootTransform = _animatedRoot.transform;
             var camTransform = _camera.transform;
@@ -66,7 +66,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
             var camRot = camTransform.rotation;
             try
             {
-                var targetPos = currentLightbox.transform.position;
+                var targetPos = currentLightbox.transform.position + Vector3.up * verticalDisplacement;
                 rootTransform.position = targetPos + (initPos - referentialVector);
                 var relativeVector = camPos - referentialVector;
                 camTransform.position = currentLightbox.transform.rotation * referentialQuaternion * relativeVector + targetPos;
