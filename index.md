@@ -38,6 +38,16 @@ Use the *Post Processing* checkbox to turn it on and off.
 
 ![image](https://user-images.githubusercontent.com/60819407/168622378-444d3c29-f6bc-44ae-aae3-8233ef6f1724.png)
 
+## Enable or Disable a lightbox
+
+After pressing *Activate LightboxViewer*, the lightbox scene will show up in at the bottom of the hierarchy.
+
+Expand the `Lightboxes` object. If you tag one of them as `EditorOnly`, the lightbox will no longer show up.
+
+<video controls width="816" autostart="false">
+    <source src="https://hai-vr.github.io/lightbox-viewer/videos/sx_2022-05-16_17-32-21_n4FA3C76cb.mp4" type="video/mp4">
+</video>
+
 # Advanced usage
 
 ## Camera roll
@@ -50,16 +60,6 @@ Press *Reset* to restore the view upright.
 
 <video controls width="816" autostart="false">
     <source src="https://hai-vr.github.io/lightbox-viewer/videos/sx_2022-05-16_07-52-09_k7AkO3iYda.mp4" type="video/mp4">
-</video>
-
-## Disable a lightbox
-
-After pressing *Activate LightboxViewer*, the lightbox scene will show up in at the bottom of the hierarchy.
-
-Expand the `Lightboxes` object. If you tag one of them as `EditorOnly`, the lightbox will no longer show up.
-
-<video controls width="816" autostart="false">
-    <source src="https://hai-vr.github.io/lightbox-viewer/videos/sx_2022-05-16_08-03-21_RQ8duK7m1k.mp4" type="video/mp4">
 </video>
 
 # Create your own lightbox scene
