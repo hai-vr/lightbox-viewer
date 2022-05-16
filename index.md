@@ -48,6 +48,16 @@ Press *Reset* to restore the view upright.
     <source src="https://hai-vr.github.io/lightbox-viewer/videos/sx_2022-05-16_07-52-09_k7AkO3iYda.mp4" type="video/mp4">
 </video>
 
+## Disabling a lightbox
+
+After pressing *Activate LightboxViewer*, the lightbox scene will show up in at the bottom of the hierarchy.
+
+Expand the `Lightboxes` object. If you tag one of them as `EditorOnly`, the lightbox will no longer show up.
+
+<video controls width="816" autostart="false">
+    <source src="https://hai-vr.github.io/lightbox-viewer/videos/sx_2022-05-16_08-03-21_RQ8duK7m1k.mp4" type="video/mp4">
+</video>
+
 # Create your own lightbox scene
 
 To create your own lightbox, you need to understand how Lightbox Viewer operates.
