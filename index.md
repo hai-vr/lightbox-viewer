@@ -14,7 +14,7 @@ While this mode is active, the editor may slow down. Press *Activate LightboxVie
     <source src="https://hai-vr.github.io/lightbox-viewer/videos/sx_2022-05-16_07-18-28_Sda2clkyuk.mp4" type="video/mp4">
 </video>
 
-## Enter Play mode once to fix text appearing through objects*
+## Enter Play mode once to fix text appearing through objects
 
 If text is appearing through objects, enter Play mode once to fix it.
 
@@ -72,9 +72,31 @@ These lightboxes is contained in a scene called `Lightbox.unity`.
 
 You can select a different lightbox scene.
 
-To create your own lightbox, you need to understand how Lightbox Viewer operates.
+## How it works
 
-## Mode of operation
+A lightbox scene is just a series of meshes put side by side with different lighting settings and post-processing settings.
+
+![image](https://user-images.githubusercontent.com/60819407/168620627-d1a7c300-ba8a-4668-b37d-fd8c34571c65.png)
+
+In a lightbox scene, each lightbox is defined in an object in the root called `Lightboxes`.
+
+![image](https://user-images.githubusercontent.com/60819407/168619085-1b2a944d-b769-4551-b80e-2a4559da4483.png)
+
+Each lightbox can contain objects that are only enabled when taking a picture of that lightbox.
+
+In particular, this affects real-time lights and post-processing settings. By putting these objects inside a lightbox, you can ensure that they are only enabled when taking a picture of that lightbox.
+
+You don't need to put meshes, light probes, or reflection probes inside the *Lightboxes* hierarchy, but you can.
+
+When creating a lightbox scene, the same discipline as creating a world applies:
+
+- Set your world meshes static *Contribute GI* and *Reflection Probe Static*.
+- Make sure your world meshes has lightmaps UVs.
+- Mark your lights as *Baked*, unless you want to test for real time lighting.
+- Place reflection probes and light probes.
+- Bake your scene lighting and reflection probes.
+
+## Full mode of operation
 
 When activating LightboxViewer, the following happens:
 
@@ -99,5 +121,3 @@ When capturing lightboxes, the following happens:
 - That child is disabled again.
 
 If the child is tagged as `EditorOnly`, it will not be used.
-
-With that in mind, you can now create a custom scene. Each lightbox is defined in the *Lightboxes* object.
