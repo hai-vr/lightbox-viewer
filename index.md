@@ -36,9 +36,7 @@ If Post Processing is not installed, you can press *Install Post-processing*. Th
 
 Use the *Post Processing* checkbox to turn it on and off.
 
-<video controls width="816" autostart="false">
-    <source src="https://hai-vr.github.io/lightbox-viewer/videos/sx_2022-05-16_07-27-19_5hudaArHip.mp4" type="video/mp4">
-</video>
+![image](https://user-images.githubusercontent.com/60819407/168622378-444d3c29-f6bc-44ae-aae3-8233ef6f1724.png)
 
 # Advanced usage
 
