@@ -34,6 +34,8 @@ If text is appearing through objects, enter Play mode once to fix it.
 
 If Post Processing is not installed, you can press *Install Post-processing*. This lets you test color grading, bloom, and other effects.
 
+Use the *Post Processing* checkbox to turn it on and off.
+
 <video controls width="816" autostart="false">
     <source src="https://hai-vr.github.io/lightbox-viewer/videos/sx_2022-05-16_07-27-19_5hudaArHip.mp4" type="video/mp4">
 </video>
@@ -67,6 +69,8 @@ Expand the `Lightboxes` object. If you tag one of them as `EditorOnly`, the ligh
 Lightbox Viewer is shipped with some default lightboxes that you can test your content with.
 
 These lightboxes is contained in a scene called `Lightbox.unity`.
+
+You can select a different lightbox scene.
 
 To create your own lightbox, you need to understand how Lightbox Viewer operates.
 
