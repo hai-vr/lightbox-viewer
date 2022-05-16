@@ -30,6 +30,20 @@ Lightbox Viewer is shipped with some default lightboxes that you can test your c
 
 These lightboxes is contained in a scene called `Lightbox.unity`.
 
+## Camera roll
+
+Camera Roll lets you roll the camera. This can be used to test how some shaders behave, specifically in regards to some matcap shaders that can look strange in VR when tilting the head sideways.
+
+By default, the *Counter-rotate* option is enabled, which keeps the preview upright despite the camera rolling.
+
+Press *Reset* to restore the view upright.
+
+https://user-images.githubusercontent.com/60819407/168527858-f9d0a2cf-3051-44cf-976a-b95d871cceb5.mp4
+
+# Create your own lightbox scene
+
+To create your own lightbox, you need to understand how Lightbox Viewer operates.
+
 ## Mode of operation
 
 When activating LightboxViewer, the following happens:
@@ -47,9 +61,13 @@ When capturing lightboxes, the following happens:
 - All reflection probes in the scene are temporaily disabled, except those in the lightbox scene.
 - All children of the object called `Lightboxes` in the lightbox scene are disabled.
 
-For each child of the object called `Lightboxes`:
+**Each child of the object called `Lightboxes` generates a picture:**
 
-- That child lightbox is enabled. This effectively enables anything inside of it that can influence the render, such as real time lights or post-processing volumes.
+- That child lightbox is enabled. **This effectively enables anything inside of it that can influence the render, such as real time lights or post-processing volumes.**
 - The object to be viewed is moved to that lightbox.
 - The camera takes a picture.
 - That child is disabled again.
+
+If the child is tagged as `EditorOnly`, it will not be used.
+
+With that in mind, you can now create a custom scene. Each lightbox is defined in the *Lightboxes* object.
