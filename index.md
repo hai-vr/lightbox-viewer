@@ -1,5 +1,10 @@
 *Lightbox Viewer* lets you simultaneously visualize changes in shader material settings under different lighting conditions.
 
+# Download
+
+- [> Download on GitHub...](https://github.com/hai-vr/lightbox-viewer/releases)
+- [> Download on Booth.pm...](https://hai-vr.booth.pm/items/3870813)
+
 # Having issues? Join my Discord Server
 
 I will try to provide help on the #lightbox-viewer channel when I can.
