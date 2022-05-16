@@ -14,6 +14,14 @@ While this mode is active, the editor may slow down. Press *Activate LightboxVie
     <source src="https://hai-vr.github.io/lightbox-viewer/videos/sx_2022-05-16_07-18-28_Sda2clkyuk.mp4" type="video/mp4">
 </video>
 
+## Enter Play mode once to fix text appearing through objects*
+
+If text is appearing through objects, enter Play mode once to fix it.
+
+<video controls width="816" autostart="false">
+    <source src="https://hai-vr.github.io/lightbox-viewer/videos/sx_2022-05-16_08-09-14_uzS6ToTBHw.mp4" type="video/mp4">
+</video>
+
 ## Testing in Play mode
 
 *Lightbox Viewer* can be used in Play mode. Press *Activate LightboxViewer* before entering Play mode.
@@ -32,13 +40,9 @@ If Post Processing is not installed, you can press *Install Post-processing*. Th
 
 # Advanced usage
 
-Lightbox Viewer is shipped with some default lightboxes that you can test your content with.
-
-These lightboxes is contained in a scene called `Lightbox.unity`.
-
 ## Camera roll
 
-Camera Roll lets you roll the camera. This can be used to test how some shaders behave, specifically in regards to some matcap shaders that can look strange in VR when tilting the head sideways.
+Camera Roll lets you roll the camera. This can be used to test how some shaders behave. Specifically, some matcap shaders can look strange in VR when tilting the head sideways.
 
 By default, the *Counter-rotate* option is enabled, which keeps the preview upright despite the camera rolling.
 
@@ -48,7 +52,7 @@ Press *Reset* to restore the view upright.
     <source src="https://hai-vr.github.io/lightbox-viewer/videos/sx_2022-05-16_07-52-09_k7AkO3iYda.mp4" type="video/mp4">
 </video>
 
-## Disabling a lightbox
+## Disable a lightbox
 
 After pressing *Activate LightboxViewer*, the lightbox scene will show up in at the bottom of the hierarchy.
 
@@ -59,6 +63,10 @@ Expand the `Lightboxes` object. If you tag one of them as `EditorOnly`, the ligh
 </video>
 
 # Create your own lightbox scene
+
+Lightbox Viewer is shipped with some default lightboxes that you can test your content with.
+
+These lightboxes is contained in a scene called `Lightbox.unity`.
 
 To create your own lightbox, you need to understand how Lightbox Viewer operates.
 
