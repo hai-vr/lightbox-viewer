@@ -66,9 +66,7 @@ Press *Reset* to restore the view upright.
 
 Lightbox Viewer is shipped with some default lightboxes that you can test your content with.
 
-These lightboxes is contained in a scene called `Lightbox.unity`.
-
-You can select a different lightbox scene.
+These lightboxes are contained in a scene called `Lightbox.unity`. You can select a different lightbox scene by creating one, or importing one created by someone else.
 
 ## How it works
 
