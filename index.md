@@ -15,7 +15,7 @@ I will try to provide help on the #lightbox-viewer channel when I can.
 
 ## Testing materials with Lightbox Viewer
 
-To begin, choose an object, and click the three vertical dots `⋮` next to the Transform component.
+To begin, choose an object, and click the three vertical dots `⋮` next to the Transform component, and select *Haï LightboxViewer*.
 
 ![image](https://user-images.githubusercontent.com/60819407/168523708-b1f94066-af60-49f2-9d04-73763eba20dc.png)
 
@@ -51,6 +51,12 @@ Use the *Post Processing* checkbox to turn it on and off.
 
 ![image](https://user-images.githubusercontent.com/60819407/168622378-444d3c29-f6bc-44ae-aae3-8233ef6f1724.png)
 
+## Lifting small objects off the ground
+
+When testing small objects, they may appear inside the ground. Press *Advanced*, and change the *Vertical Displacement* slider to lift it off the ground.
+
+![image](https://user-images.githubusercontent.com/60819407/168845888-17b8cf4b-de34-4614-b54b-b18a8dd551a9.png)
+
 ## Disable a lightbox
 
 After pressing *Activate LightboxViewer*, the lightbox scene will show up in at the bottom of the hierarchy.
@@ -80,6 +86,16 @@ Press *Reset* to restore the view upright.
 <video controls width="816" autostart="false">
     <source src="https://hai-vr.github.io/lightbox-viewer/videos/sx_2022-05-16_07-52-09_k7AkO3iYda.mp4" type="video/mp4">
 </video>
+
+## Custom camera settings
+
+If you need to tweak the camera settings (such as MSAA, HDR, ...), you can select a reference camera in *Advanced > Reference Camera*.
+
+This will use most camera settings including the near and far clip plane. The scene camera continues to control the camera.
+
+## Realign after object movement
+
+During operation, you can click *Advanced > Realign* to center the lightboxes back to your object after it has moved around.
 
 # Create your own lightbox scene
 
