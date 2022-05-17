@@ -27,14 +27,6 @@ While this mode is active, the editor may slow down. Press *Activate LightboxVie
     <source src="https://hai-vr.github.io/lightbox-viewer/videos/sx_2022-05-16_07-18-28_Sda2clkyuk.mp4" type="video/mp4">
 </video>
 
-## Enter Play mode once to fix text appearing through objects
-
-If text is appearing through objects, enter Play mode once to fix it.
-
-<video controls width="816" autostart="false">
-    <source src="https://hai-vr.github.io/lightbox-viewer/videos/sx_2022-05-16_08-09-14_uzS6ToTBHw.mp4" type="video/mp4">
-</video>
-
 ## Testing in Play mode
 
 *Lightbox Viewer* can be used in Play mode. Press *Activate LightboxViewer* before entering Play mode.
