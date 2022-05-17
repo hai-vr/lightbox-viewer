@@ -287,6 +287,11 @@ namespace Hai.LightboxViewer.Scripts.Editor
             ProjectRenderQueue.LoadLightbox(lightboxScene);
             _enabled = true;
             Realign();
+
+            // Fix UI text rendering over everything.
+            // This normally fixes itself when entering Play mode, but this will allow not needing to enter Play mode.
+            var LessEqual = 4;
+            Shader.SetGlobalInt("unity_GUIZTestMode", LessEqual);
         }
 
         private void Realign()
