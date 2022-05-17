@@ -109,7 +109,7 @@ A lightbox scene is just a series of meshes put side by side with different ligh
 
 ![image](https://user-images.githubusercontent.com/60819407/168620627-d1a7c300-ba8a-4668-b37d-fd8c34571c65.png)
 
-In a lightbox scene, each lightbox is defined in an object in the root called `Lightboxes`.
+In a lightbox scene, each lightbox is defined in an object in the root called `Lightboxes`. The position and rotation of the lightbox is used to determine where to place the object inside that lightbox.
 
 ![image](https://user-images.githubusercontent.com/60819407/168619085-1b2a944d-b769-4551-b80e-2a4559da4483.png)
 
@@ -117,7 +117,7 @@ Each lightbox can contain objects that are only enabled when taking a picture of
 
 In particular, this affects real-time lights and post-processing settings. By putting these objects inside a lightbox, you can ensure that they are only enabled when taking a picture of that lightbox.
 
-You don't need to put meshes, light probes, or reflection probes inside the *Lightboxes* hierarchy, but you can.
+You don't need to put meshes, light probes, or reflection probes inside the `Lightboxes` hierarchy, but you can. The default lightbox scene has all the meshes and baked data defined outside the `Lightboxes` hierarchy.
 
 When creating a lightbox scene, the same discipline as creating a world applies:
 
