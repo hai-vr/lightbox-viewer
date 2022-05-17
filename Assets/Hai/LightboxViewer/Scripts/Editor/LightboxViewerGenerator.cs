@@ -119,6 +119,12 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
         private void OnCompleteReadback(AsyncGPUReadbackRequest request, Texture2D texture2D)
         {
+            if (texture2D == null)
+            {
+                // Can happen after exiting Play mode (without "no domain reload")
+                return;
+            }
+
             texture2D.LoadRawTextureData(request.GetData<uint>());
             texture2D.Apply();
 

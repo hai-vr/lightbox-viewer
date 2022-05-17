@@ -23,6 +23,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
         public bool postProcessing = true;
         public bool advanced;
         public float verticalDisplacement;
+        public bool enabled;
         private Vector2 _scrollPos;
         private int _generatedSize;
 
@@ -58,9 +59,15 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
         private void Update()
         {
-            if (!_enabled) return;
-            if (_enabled && lightboxScene == null)
+            if (!enabled) return;
+            if (enabled && lightboxScene == null)
             {
+                Disable();
+            }
+
+            if (enabled && !EditorApplication.isPlaying && objectToView == null)
+            {
+                // Happens when restarting Unity
                 Disable();
             }
 
@@ -71,7 +78,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
         private void OnDisable()
         {
-            if (_enabled && !ProjectRenderQueue.SceneIsChanged())
+            if (enabled && !ProjectRenderQueue.SceneIsChanged() && !EditorApplication.isPlayingOrWillChangePlaymode)
             {
                 Disable();
             }
@@ -92,7 +99,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
             var serializedObject = new SerializedObject(this);
             EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(objectToView)));
 
-            EditorGUI.BeginDisabledGroup(_enabled);
+            EditorGUI.BeginDisabledGroup(enabled);
             EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(lightboxScene)));
             EditorGUI.EndDisabledGroup();
 
@@ -111,29 +118,25 @@ namespace Hai.LightboxViewer.Scripts.Editor
             if (objectToView == null || lightboxScene == null || SceneManager.GetSceneAt(0).path == AssetDatabase.GetAssetPath(lightboxScene))
             {
                 EditorGUI.BeginDisabledGroup(true);
-                ColoredBgButton(_enabled, Color.red, () => GUILayout.Button("Activate LightboxViewer"));
+                ColoredBgButton(enabled, Color.red, () => GUILayout.Button("Activate LightboxViewer"));
                 EditorGUI.EndDisabledGroup();
             }
-            else if (Application.isPlaying && !_enabled)
+            else if (Application.isPlaying && !enabled)
             {
                 EditorGUILayout.BeginHorizontal();
                 EditorGUILayout.HelpBox("To use LightboxViewer in Play mode, activate it before entering Play mode.", MessageType.Warning);
                 if (GUILayout.Button("Restart Play mode with LightboxViewer", GUILayout.Width(position.width / 2), GUILayout.Height(EditorGUIUtility.singleLineHeight * 2)))
                 {
                     EditorApplication.isPlaying = false;
-                    EditorApplication.delayCall += () =>
-                    {
-                        Enable();
-                        EditorApplication.isPlaying = true;
-                    };
+                    EditorApplication.delayCall += RestartPlayMode;
                 }
                 EditorGUILayout.EndHorizontal();
             }
-            else if (!Application.isPlaying && _enabled && ProjectRenderQueue.SceneIsChanged())
+            else if (!Application.isPlaying && enabled && ProjectRenderQueue.SceneIsChanged())
             {
                 EditorGUILayout.BeginHorizontal();
                 EditorGUI.BeginDisabledGroup(true);
-                ColoredBgButton(_enabled, Color.red, () => GUILayout.Button("Activate LightboxViewer", GUILayout.Height(EditorGUIUtility.singleLineHeight * 2)));
+                ColoredBgButton(enabled, Color.red, () => GUILayout.Button("Activate LightboxViewer", GUILayout.Height(EditorGUIUtility.singleLineHeight * 2)));
                 EditorGUI.EndDisabledGroup();
 
                 EditorGUILayout.HelpBox("You have modified the lightbox scene.\nDo you want to save the lightbox scene?", MessageType.Warning);
@@ -151,7 +154,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
             else
             {
                 EditorGUI.BeginDisabledGroup(objectToView == null || Application.isPlaying);
-                if (ColoredBgButton(_enabled, Color.red, () => GUILayout.Button("Activate LightboxViewer")))
+                if (ColoredBgButton(enabled, Color.red, () => GUILayout.Button("Activate LightboxViewer")))
                 {
                     ToggleLightboxViewer();
                 }
@@ -174,7 +177,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 EditorGUI.EndDisabledGroup();
                 EditorGUILayout.EndHorizontal();
 
-                EditorGUI.BeginDisabledGroup(!_enabled);
+                EditorGUI.BeginDisabledGroup(!enabled);
                 if (GUILayout.Button("Realign"))
                 {
                     Realign();
@@ -254,12 +257,23 @@ namespace Hai.LightboxViewer.Scripts.Editor
             }
             else
             {
-                if (_enabled)
+                if (enabled)
                 {
                     EditorGUILayout.HelpBox("Lightbox scene has no root GameObject named \"Lightboxes\", or it is empty.", MessageType.Error);
                 }
             }
             EditorGUILayout.EndScrollView();
+        }
+
+        private void RestartPlayMode()
+        {
+            if (EditorApplication.isPlaying)
+            {
+                EditorApplication.delayCall += RestartPlayMode;
+                return;
+            }
+            Enable();
+            EditorApplication.isPlaying = true;
         }
 
         private int SanitizeTextureSize(int min)
@@ -270,7 +284,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
         private void ToggleLightboxViewer()
         {
-            if (!_enabled)
+            if (!enabled)
             {
                 Enable();
             }
@@ -282,10 +296,12 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
         private void Enable()
         {
-            if (_enabled) return;
+            if (enabled) return;
 
             ProjectRenderQueue.LoadLightbox(lightboxScene);
-            _enabled = true;
+            var so = new SerializedObject(this);
+            so.FindProperty(nameof(enabled)).boolValue = true;
+            so.ApplyModifiedPropertiesWithoutUndo();
             Realign();
 
             // Fix UI text rendering over everything.
@@ -303,9 +319,11 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
         private void Disable()
         {
-            if (!_enabled) return;
+            if (!enabled) return;
             ProjectRenderQueue.UnloadLightbox();
-            _enabled = false;
+            var so = new SerializedObject(this);
+            so.FindProperty(nameof(enabled)).boolValue = false;
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private void UsingObjectToView(Transform newObjectToView)
@@ -351,7 +369,6 @@ namespace Hai.LightboxViewer.Scripts.Editor
         private static Action _repaint;
         private static readonly LightboxViewerRenderQueue ProjectRenderQueue;
         private static GameObject _focusedObjectNullable;
-        private static bool _enabled;
         private float _generatedNormalizedTime;
         private Vector3 _referentialVector;
         private Quaternion _referentialQuaternion;
@@ -359,16 +376,27 @@ namespace Hai.LightboxViewer.Scripts.Editor
         internal static Type PplType;
         internal static FieldInfo PplVolumeLayerField;
         internal static FieldInfo PplVolumeTriggerField;
+        private bool _ensured;
 
         static LightboxViewerEditorWindow()
         {
             ProjectRenderQueue = new LightboxViewerRenderQueue();
         }
 
-        private static void UpdateAny()
+        private void UpdateAny()
         {
-            if (!_enabled) return;
+            if (!enabled) return;
 
+            if (!_ensured && EditorApplication.isPlaying)
+            {
+                _ensured = true;
+                ProjectRenderQueue.EnsureLightbox(AssetDatabase.GetAssetPath(lightboxScene));
+                Realign();
+            }
+            else if (_ensured && !EditorApplication.isPlaying)
+            {
+                _ensured = false;
+            }
             ProjectRenderQueue.ForceRequireRenderAll();
             var didRerender = Rerender();
             if (didRerender && _repaint != null)
@@ -583,6 +611,15 @@ namespace Hai.LightboxViewer.Scripts.Editor
         {
             _openScene = EditorSceneManager.OpenScene(AssetDatabase.GetAssetPath(lightbox), OpenSceneMode.Additive);
             LightProbes.Tetrahedralize();
+            _sceneLoaded = true;
+            ForceRequireRenderAll();
+        }
+
+        public void EnsureLightbox(string path)
+        {
+            if (_sceneLoaded) return;
+
+            _openScene = SceneManager.GetSceneByPath(path);
             _sceneLoaded = true;
             ForceRequireRenderAll();
         }
