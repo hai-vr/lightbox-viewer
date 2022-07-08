@@ -18,12 +18,15 @@ namespace Hai.LightboxViewer.Scripts.Editor
         public Transform objectToView;
         public Camera referenceCamera;
         public SceneAsset lightboxScene;
+        public GameObject[] allApplicableLightboxes;
         public float cameraRoll;
         public bool counterRotate = true;
         public bool postProcessing = true;
         public bool advanced;
         public float verticalDisplacement;
         public bool enabled;
+        public bool focus;
+        public int focusID;
         private Vector2 _scrollPos;
         private int _generatedSize;
 
@@ -223,7 +226,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
             }
 
             var att = ProjectRenderQueue.Textures().ToArray();
-            if (att.Length != 0)
+            if (att[0] != null)
             {
                 var names = ProjectRenderQueue.Names();
 
@@ -241,13 +244,17 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
                 var bypassPlaymodeTintOldColor = GUI.color;
                 GUI.color = Color.white;
+
+
                 for (var i = 0; i < numberOfRows; i++)
                 {
                     EditorGUILayout.BeginHorizontal();
                     for (int k = i * numberOfRows; k < Math.Min(att.Length, (i * numberOfRows) + numberOfRows); k++)
                     {
                         var texture = att[k];
-                        GUILayout.Box(new GUIContent(texture, names[k]), GUILayout.Width(actualWidth), GUILayout.Height(actualHeight));
+                        if (GUILayout.Button(new GUIContent(texture, names[k]), GUILayout.Width(actualWidth), GUILayout.Height(actualHeight))) {
+                            ToggleFocus(k);
+                        }
                     }
 
                     EditorGUILayout.EndHorizontal();
@@ -280,6 +287,39 @@ namespace Hai.LightboxViewer.Scripts.Editor
         {
             var bounded = Math.Max(16, Mathf.Min(2048, min));
             return bounded - bounded % 8;
+        }
+
+        private void ToggleFocus(int k)
+        {
+            if (!focus)
+            {
+                var so = new SerializedObject(this);
+                so.FindProperty(nameof(focus)).boolValue = true;
+                so.FindProperty(nameof(focusID)).intValue = k;
+                so.ApplyModifiedPropertiesWithoutUndo();
+
+                allApplicableLightboxes = AllApplicableLightboxes();
+                for (int i = 0; i < allApplicableLightboxes.Count(); i++) 
+                {
+                    var currentLightbox = allApplicableLightboxes[i];
+                    if (i != focusID) {
+                        currentLightbox.tag = "EditorOnly";
+                    }
+                }
+            }
+            else
+            {
+                var so = new SerializedObject(this);
+                so.FindProperty(nameof(focus)).boolValue = false;
+                so.FindProperty(nameof(focusID)).intValue = 0;
+                so.ApplyModifiedPropertiesWithoutUndo();
+                for (int i = 0; i < allApplicableLightboxes.Count(); i++) 
+                {
+                    if ( allApplicableLightboxes.Count() == 0 ) break;
+                    var currentLightbox = allApplicableLightboxes[i];
+                    currentLightbox.tag = "Untagged";
+                }
+            }
         }
 
         private void ToggleLightboxViewer()
@@ -364,6 +404,26 @@ namespace Hai.LightboxViewer.Scripts.Editor
             var editor = GetWindow<LightboxViewerEditorWindow>(false, null, false);
             editor.titleContent = new GUIContent("LightboxViewer");
             return editor;
+        }
+
+        private GameObject[] AllLightboxes()
+        {
+            var holder = SceneManager.GetSceneByPath( AssetDatabase.GetAssetPath(lightboxScene)).GetRootGameObjects()
+                .FirstOrDefault(o => o.name == "Lightboxes");
+
+            if (holder == null) return new GameObject[0];
+
+            return holder.transform
+                .Cast<Transform>()
+                .Select(lightbox => lightbox.gameObject)
+                .ToArray();
+        }
+
+        private GameObject[] AllApplicableLightboxes()
+        {
+            return AllLightboxes()
+                .Where(lightbox => !lightbox.CompareTag("EditorOnly"))
+                .ToArray();
         }
 
         private static Action _repaint;
