@@ -16,6 +16,6 @@ I will try to provide help on the #lightbox-viewer channel when I can.
 
 ## Documentation
 
-Full documentation complete with illustrative videos [is available here](https://hai-vr.github.io/lightbox-viewer/).
+Full documentation complete with illustrative videos [is available here](https://docs.hai-vr.dev/docs/products/lightbox-viewer).
 
-*[Open Documentation / Tutorial at https://hai-vr.github.io/lightbox-viewer/ ...](https://hai-vr.github.io/lightbox-viewer/)*
+*[Open Documentation / Tutorial at https://docs.hai-vr.dev/docs/products/lightbox-viewer ...](https://docs.hai-vr.dev/docs/products/lightbox-viewer)*
