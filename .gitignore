@@ -1,0 +1,12 @@
+Assets/
+Library/
+Packages/
+Logs/
+obj/
+ProjectSettings/
+Temp/
+UserSettings/
+.idea/
+*.csproj
+*.sln
+!Packages/dev.hai-vr.lightbox-viewer/**
