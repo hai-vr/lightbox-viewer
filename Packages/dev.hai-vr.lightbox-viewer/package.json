@@ -1,19 +1,21 @@
 {
   "name": "dev.hai-vr.lightbox-viewer",
   "displayName": "Haï ~ Lightbox Viewer",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "unity": "2022.3",
-  "description": "Lightbox Viewer https://docs.hai-vr.dev/docs/products/lightbox-viewer",
+  "description": "Visualize changes in shader material settings under different lighting conditions, simultaneously https://docs.hai-vr.dev/docs/products/lightbox-viewer",
   "vrchatVersion" : "2022.1.1",
   "author" : {
     "name" : "Haï~"
   },
   "vpmDependencies": {
-    "dev.hai-vr.resilience.toolkit" : "1.0.x"
   },
   "legacyFolders" : {
     "Assets\\Hai\\LightboxViewer" : "e665038cbedf4bd79d4afb73300a8bee",
     "Assets\\Hai\\LightboxScenes\\HaiLightbox" : "921864c0334e0344faaccd7e456ab6dd"
   },
-  "url" : "https://docs.hai-vr.dev/docs/products/lightbox-viewer"
+  "url" : "https://docs.hai-vr.dev/docs/products/lightbox-viewer",
+  "documentationUrl": "https://docs.hai-vr.dev/docs/products/lightbox-viewer",
+  "changelogUrl": "https://docs.hai-vr.dev/docs/changelogs/lightbox-viewer",
+  "license": "MIT"
 }
