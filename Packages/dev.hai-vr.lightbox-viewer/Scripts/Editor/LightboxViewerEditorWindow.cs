@@ -417,6 +417,8 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
     public class LightboxViewerRenderQueue
     {
+        private const bool WhenInEditMode_DestroyAllMonoBehaviours = true;
+        
         private readonly Dictionary<int, Texture2D> _lightboxIndexToTexture;
         private readonly Queue<int> _queue;
         private int _queueSize;
@@ -495,7 +497,38 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 var wasActive = originalAvatarGo.activeSelf;
                 try
                 {
-                    copy = Object.Instantiate(originalAvatarGo);
+                    if (WhenInEditMode_DestroyAllMonoBehaviours)
+                    {
+                        // Parent the copy to an inactive object during instantiation, so that we can delete all MonoBehaviours
+                        // without triggering their OnEnable and OnDestroy functions
+                        copy = new GameObject
+                        {
+                            transform =
+                            {
+                                position = originalAvatarGo.transform.position,
+                                rotation = originalAvatarGo.transform.rotation,
+                                localScale = originalAvatarGo.transform.localScale
+                            } 
+                        };
+                        copy.SetActive(false);
+                    
+                        var innerCopy = Object.Instantiate(originalAvatarGo, copy.transform, true);
+                        var allMonoBehaviours = innerCopy.GetComponentsInChildren<MonoBehaviour>(true);
+                        foreach (var monoBehaviourNullable in allMonoBehaviours)
+                        {
+                            // GetComponentsInChildren may return null MonoBehaviour if their script can't be loaded
+                            if (monoBehaviourNullable != null)
+                            {
+                                Object.DestroyImmediate(monoBehaviourNullable);
+                            }
+                        }
+                        innerCopy.SetActive(true);
+                    }
+                    else
+                    {
+                        copy = Object.Instantiate(originalAvatarGo);
+                    }
+                    
                     copy.SetActive(true);
                     originalAvatarGo.SetActive(false);
                     Render(copy);
