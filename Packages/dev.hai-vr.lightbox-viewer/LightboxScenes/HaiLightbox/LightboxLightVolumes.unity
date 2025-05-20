@@ -99,7 +99,7 @@ LightmapSettings:
     m_LightProbeSampleCountMultiplier: 4
   m_LightingDataAsset: {fileID: 112000002, guid: e99d6ff6d44da0f4dabc786907f44915,
     type: 2}
-  m_LightingSettings: {fileID: 4890085278179872738, guid: 5d2fe7503fca2fa42a2fdf351a25ce08,
+  m_LightingSettings: {fileID: 4890085278179872738, guid: e379ec65d3d65f5428f53d8a3bdd91c1,
     type: 2}
 --- !u!196 &4
 NavMeshSettings:
@@ -1569,12 +1569,12 @@ MonoBehaviour:
   IsDynamic: 0
   IsAdditive: 0
   InvBakedRotation: {x: 0, y: 0, z: 0, w: 1}
-  BoundsUvwMin0: {x: 0.1, y: 0.1, z: 0.057894737, w: 0}
-  BoundsUvwMin1: {x: 0.1, y: 0.1, z: 0.42631578, w: 0}
-  BoundsUvwMin2: {x: 0.1, y: 0.1, z: 0.9526316, w: 0}
-  BoundsUvwMax0: {x: 0.9, y: 0.9, z: 0.1, w: 0}
-  BoundsUvwMax1: {x: 0.9, y: 0.9, z: 0.46842104, w: 0}
-  BoundsUvwMax2: {x: 0.9, y: 0.9, z: 0.99473685, w: 0}
+  BoundsUvwMin0: {x: 0.055555556, y: 0.055555556, z: 0.055555556, w: 0}
+  BoundsUvwMin1: {x: 0.055555556, y: 0.055555556, z: 0.4239766, w: 0}
+  BoundsUvwMin2: {x: 0.055555556, y: 0.055555556, z: 0.9502924, w: 0}
+  BoundsUvwMax0: {x: 0.9444444, y: 0.9444444, z: 0.10233918, w: 0}
+  BoundsUvwMax1: {x: 0.9444444, y: 0.9444444, z: 0.47076023, w: 0}
+  BoundsUvwMax2: {x: 0.9444444, y: 0.9444444, z: 0.99707603, w: 0}
   InvLocalEdgeSmoothing: {x: 15.999973, y: 16, z: 16, w: 0}
   InvWorldMatrix:
     e00: 0.25000042
@@ -2765,12 +2765,12 @@ MonoBehaviour:
   IsDynamic: 0
   IsAdditive: 0
   InvBakedRotation: {x: 0, y: 0, z: 0, w: 1}
-  BoundsUvwMin0: {x: 0.1, y: 0.1, z: 0.5842105, w: 0}
-  BoundsUvwMin1: {x: 0.1, y: 0.1, z: 0.53157896, w: 0}
-  BoundsUvwMin2: {x: 0.1, y: 0.1, z: 0.9, w: 0}
-  BoundsUvwMax0: {x: 0.9, y: 0.9, z: 0.6263158, w: 0}
-  BoundsUvwMax1: {x: 0.9, y: 0.9, z: 0.5736842, w: 0}
-  BoundsUvwMax2: {x: 0.9, y: 0.9, z: 0.94210523, w: 0}
+  BoundsUvwMin0: {x: 0.055555556, y: 0.055555556, z: 0.58187133, w: 0}
+  BoundsUvwMin1: {x: 0.055555556, y: 0.055555556, z: 0.5292398, w: 0}
+  BoundsUvwMin2: {x: 0.055555556, y: 0.055555556, z: 0.8976608, w: 0}
+  BoundsUvwMax0: {x: 0.9444444, y: 0.9444444, z: 0.62865496, w: 0}
+  BoundsUvwMax1: {x: 0.9444444, y: 0.9444444, z: 0.5760234, w: 0}
+  BoundsUvwMax2: {x: 0.9444444, y: 0.9444444, z: 0.9444444, w: 0}
   InvLocalEdgeSmoothing: {x: 16, y: 16, z: 16, w: 0}
   InvWorldMatrix:
     e00: 0.25
@@ -3004,12 +3004,12 @@ MonoBehaviour:
   IsDynamic: 0
   IsAdditive: 0
   InvBakedRotation: {x: 0, y: 0, z: 0, w: 1}
-  BoundsUvwMin0: {x: 0.1, y: 0.1, z: 0.26842105, w: 0}
-  BoundsUvwMin1: {x: 0.1, y: 0.1, z: 0.21578947, w: 0}
-  BoundsUvwMin2: {x: 0.1, y: 0.1, z: 0.1631579, w: 0}
-  BoundsUvwMax0: {x: 0.9, y: 0.9, z: 0.3105263, w: 0}
-  BoundsUvwMax1: {x: 0.9, y: 0.9, z: 0.25789472, w: 0}
-  BoundsUvwMax2: {x: 0.9, y: 0.9, z: 0.20526315, w: 0}
+  BoundsUvwMin0: {x: 0.055555556, y: 0.055555556, z: 0.26608187, w: 0}
+  BoundsUvwMin1: {x: 0.055555556, y: 0.055555556, z: 0.2134503, w: 0}
+  BoundsUvwMin2: {x: 0.055555556, y: 0.055555556, z: 0.16081871, w: 0}
+  BoundsUvwMax0: {x: 0.9444444, y: 0.9444444, z: 0.3128655, w: 0}
+  BoundsUvwMax1: {x: 0.9444444, y: 0.9444444, z: 0.2602339, w: 0}
+  BoundsUvwMax2: {x: 0.9444444, y: 0.9444444, z: 0.20760234, w: 0}
   InvLocalEdgeSmoothing: {x: 16, y: 16, z: 16, w: 0}
   InvWorldMatrix:
     e00: 0.25
@@ -3203,12 +3203,12 @@ MonoBehaviour:
   IsDynamic: 0
   IsAdditive: 0
   InvBakedRotation: {x: 0, y: 0, z: 0, w: 1}
-  BoundsUvwMin0: {x: 0.1, y: 0.1, z: 0.005263158, w: 0}
-  BoundsUvwMin1: {x: 0.1, y: 0.1, z: 0.8473684, w: 0}
-  BoundsUvwMin2: {x: 0.1, y: 0.1, z: 0.79473686, w: 0}
-  BoundsUvwMax0: {x: 0.9, y: 0.9, z: 0.047368422, w: 0}
-  BoundsUvwMax1: {x: 0.9, y: 0.9, z: 0.8894737, w: 0}
-  BoundsUvwMax2: {x: 0.9, y: 0.9, z: 0.8368421, w: 0}
+  BoundsUvwMin0: {x: 0.055555556, y: 0.055555556, z: 0.0029239766, w: 0}
+  BoundsUvwMin1: {x: 0.055555556, y: 0.055555556, z: 0.84502923, w: 0}
+  BoundsUvwMin2: {x: 0.055555556, y: 0.055555556, z: 0.7923977, w: 0}
+  BoundsUvwMax0: {x: 0.9444444, y: 0.9444444, z: 0.049707603, w: 0}
+  BoundsUvwMax1: {x: 0.9444444, y: 0.9444444, z: 0.89181286, w: 0}
+  BoundsUvwMax2: {x: 0.9444444, y: 0.9444444, z: 0.8391813, w: 0}
   InvLocalEdgeSmoothing: {x: 16, y: 16, z: 16, w: 0}
   InvWorldMatrix:
     e00: 0.25
@@ -4252,12 +4252,12 @@ MonoBehaviour:
   IsDynamic: 0
   IsAdditive: 0
   InvBakedRotation: {x: 0, y: 0, z: 0, w: 1}
-  BoundsUvwMin0: {x: 0.1, y: 0.1, z: 0.47894737, w: 0}
-  BoundsUvwMin1: {x: 0.1, y: 0.1, z: 0.3736842, w: 0}
-  BoundsUvwMin2: {x: 0.1, y: 0.1, z: 0.32105264, w: 0}
-  BoundsUvwMax0: {x: 0.9, y: 0.9, z: 0.52105266, w: 0}
-  BoundsUvwMax1: {x: 0.9, y: 0.9, z: 0.41578948, w: 0}
-  BoundsUvwMax2: {x: 0.9, y: 0.9, z: 0.3631579, w: 0}
+  BoundsUvwMin0: {x: 0.055555556, y: 0.055555556, z: 0.4766082, w: 0}
+  BoundsUvwMin1: {x: 0.055555556, y: 0.055555556, z: 0.37134504, w: 0}
+  BoundsUvwMin2: {x: 0.055555556, y: 0.055555556, z: 0.31871346, w: 0}
+  BoundsUvwMax0: {x: 0.9444444, y: 0.9444444, z: 0.5233918, w: 0}
+  BoundsUvwMax1: {x: 0.9444444, y: 0.9444444, z: 0.41812867, w: 0}
+  BoundsUvwMax2: {x: 0.9444444, y: 0.9444444, z: 0.36549708, w: 0}
   InvLocalEdgeSmoothing: {x: 16, y: 16, z: 16, w: 0}
   InvWorldMatrix:
     e00: 0.25
@@ -4440,12 +4440,12 @@ MonoBehaviour:
   IsDynamic: 0
   IsAdditive: 0
   InvBakedRotation: {x: 0, y: 0, z: 0, w: 1}
-  BoundsUvwMin0: {x: 0.1, y: 0.1, z: 0.110526316, w: 0}
-  BoundsUvwMin1: {x: 0.1, y: 0.1, z: 0.110526316, w: 0}
-  BoundsUvwMin2: {x: 0.1, y: 0.1, z: 0.110526316, w: 0}
-  BoundsUvwMax0: {x: 0.9, y: 0.9, z: 0.15263158, w: 0}
-  BoundsUvwMax1: {x: 0.9, y: 0.9, z: 0.15263158, w: 0}
-  BoundsUvwMax2: {x: 0.9, y: 0.9, z: 0.15263158, w: 0}
+  BoundsUvwMin0: {x: 0.055555556, y: 0.055555556, z: 0.10818713, w: 0}
+  BoundsUvwMin1: {x: 0.055555556, y: 0.055555556, z: 0.10818713, w: 0}
+  BoundsUvwMin2: {x: 0.055555556, y: 0.055555556, z: 0.10818713, w: 0}
+  BoundsUvwMax0: {x: 0.9444444, y: 0.9444444, z: 0.15497077, w: 0}
+  BoundsUvwMax1: {x: 0.9444444, y: 0.9444444, z: 0.15497077, w: 0}
+  BoundsUvwMax2: {x: 0.9444444, y: 0.9444444, z: 0.15497077, w: 0}
   InvLocalEdgeSmoothing: {x: 16, y: 16, z: 16, w: 0}
   InvWorldMatrix:
     e00: 0.25
@@ -4773,12 +4773,12 @@ MonoBehaviour:
   IsDynamic: 0
   IsAdditive: 0
   InvBakedRotation: {x: 0, y: 0, z: 0, w: 1}
-  BoundsUvwMin0: {x: 0.1, y: 0.1, z: 0.74210525, w: 0}
-  BoundsUvwMin1: {x: 0.1, y: 0.1, z: 0.6894737, w: 0}
-  BoundsUvwMin2: {x: 0.1, y: 0.1, z: 0.63684213, w: 0}
-  BoundsUvwMax0: {x: 0.9, y: 0.9, z: 0.7842105, w: 0}
-  BoundsUvwMax1: {x: 0.9, y: 0.9, z: 0.73157895, w: 0}
-  BoundsUvwMax2: {x: 0.9, y: 0.9, z: 0.6789474, w: 0}
+  BoundsUvwMin0: {x: 0.055555556, y: 0.055555556, z: 0.73976606, w: 0}
+  BoundsUvwMin1: {x: 0.055555556, y: 0.055555556, z: 0.6871345, w: 0}
+  BoundsUvwMin2: {x: 0.055555556, y: 0.055555556, z: 0.63450295, w: 0}
+  BoundsUvwMax0: {x: 0.9444444, y: 0.9444444, z: 0.7865497, w: 0}
+  BoundsUvwMax1: {x: 0.9444444, y: 0.9444444, z: 0.73391813, w: 0}
+  BoundsUvwMax2: {x: 0.9444444, y: 0.9444444, z: 0.6812866, w: 0}
   InvLocalEdgeSmoothing: {x: 16, y: 16, z: 16, w: 0}
   InvWorldMatrix:
     e00: 0.25
