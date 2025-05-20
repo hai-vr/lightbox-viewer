@@ -15,6 +15,9 @@ namespace Hai.LightboxViewer.Scripts.Editor
     [InitializeOnLoad]
     public class LightboxViewerEditorWindow : EditorWindow
     {
+        private const string BasicSceneFolder = "1cef314dbf6e7814a8f2867c36e87835";
+        private const string LightVolumesSceneFolder = "927b5f5dbdab0a74d93f997f9af74118";
+        
         public Transform objectToView;
         public Camera referenceCamera;
         public SceneAsset lightboxScene;
@@ -49,7 +52,12 @@ namespace Hai.LightboxViewer.Scripts.Editor
         {
             if (lightboxScene == null)
             {
-                var path = AssetDatabase.GUIDToAssetPath("1cef314dbf6e7814a8f2867c36e87835");
+#if !LIGHTBOXVIEWER_LIGHTVOLUMES_SUPPORTED
+                var sceneToUse = BasicSceneFolder;
+#else
+                var sceneToUse = LightVolumesSceneFolder;
+#endif
+                var path = AssetDatabase.GUIDToAssetPath(sceneToUse);
                 if (path != null)
                 {
                     lightboxScene = AssetDatabase.LoadAssetAtPath<SceneAsset>($"{path}.unity");

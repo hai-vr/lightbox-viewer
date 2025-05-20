@@ -10,6 +10,12 @@
     "precompiledReferences": [],
     "autoReferenced": true,
     "defineConstraints": [],
-    "versionDefines": [],
+    "versionDefines": [
+        {
+            "name": "red.sim.lightvolumes",
+            "expression": "0.7.2",
+            "define": "LIGHTBOXVIEWER_LIGHTVOLUMES_SUPPORTED"
+        }
+    ],
     "noEngineReferences": false
 }
