@@ -35,18 +35,43 @@ namespace Hai.LightboxViewer.Scripts.Editor
         private const string ResetLabel = "Reset";
         private const string RestartPlayModeLabel = "Restart Play mode with LightboxViewer";
         private const string SaveLabel = "Save";
+        private const string LightboxViewerPrefsKey = "LightboxViewer.";
 
         public Transform objectToView;
         public Camera referenceCamera;
         public SceneAsset lightboxScene;
         public float cameraRoll;
-        public bool counterRotate = true;
-        public bool postProcessing = true;
         public bool advanced = true;
-        public float verticalDisplacement;
         public bool enabled;
-        public bool muteLightsInsideObject;
-        public bool supportDepthTexture;
+        
+        public static bool CounterRotate
+        {
+            get => EditorPrefs.GetBool(PrefsKey(nameof(CounterRotate)), true);
+            set => EditorPrefs.SetBool(PrefsKey(nameof(CounterRotate)), value);
+        }
+        public static bool PostProcessing
+        {
+            get => EditorPrefs.GetBool(PrefsKey(nameof(PostProcessing)), true);
+            set => EditorPrefs.SetBool(PrefsKey(nameof(PostProcessing)), value);
+        }
+        public static float VerticalDisplacement
+        {
+            get => EditorPrefs.GetFloat(PrefsKey(nameof(VerticalDisplacement)), 0f);
+            set => EditorPrefs.SetFloat(PrefsKey(nameof(VerticalDisplacement)), value);
+        }
+        public static bool MuteLightsInsideObject
+        {
+            get => EditorPrefs.GetBool(PrefsKey(nameof(MuteLightsInsideObject)), false);
+            set => EditorPrefs.SetBool(PrefsKey(nameof(MuteLightsInsideObject)), value);
+        }
+        public static bool SupportDepthTexture
+        {
+            get => EditorPrefs.GetBool(PrefsKey(nameof(SupportDepthTexture)), false);
+            set => EditorPrefs.SetBool(PrefsKey(nameof(SupportDepthTexture)), value);
+        }
+
+        private static string PrefsKey(string prop) => $"{LightboxViewerPrefsKey}.{prop}";
+
         private Vector2 _scrollPos;
         private int _generatedSize;
         
@@ -144,7 +169,9 @@ namespace Hai.LightboxViewer.Scripts.Editor
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.Slider(serializedObject.FindProperty(nameof(cameraRoll)), -1f, 1f);
             EditorGUILayout.LabelField(CounterRotateLabel, GUILayout.Width(100));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(counterRotate)), GUIContent.none, GUILayout.Width(EditorGUIUtility.singleLineHeight));
+
+            EditorGUI.BeginChangeCheck();
+            PrefsToggle("", CounterRotate, newValue => CounterRotate = newValue, GUILayout.Width(EditorGUIUtility.singleLineHeight));
             EditorGUI.BeginDisabledGroup(cameraRoll == 0);
             if (ColoredBgButton(cameraRoll != 0, Color.green, () => GUILayout.Button(ResetLabel, GUILayout.Width(150))))
             {
@@ -204,11 +231,11 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 advanced = EditorGUILayout.Foldout(advanced, AdvancedLabel);
 
                 EditorGUILayout.BeginHorizontal();
-                EditorGUILayout.Slider(serializedObject.FindProperty(nameof(verticalDisplacement)), 0, 2f);
-                EditorGUI.BeginDisabledGroup(verticalDisplacement == 0);
-                if (ColoredBgButton(verticalDisplacement != 0, Color.green, () => GUILayout.Button(ResetLabel, GUILayout.Width(150))))
+                PrefsSlider(nameof(VerticalDisplacement), VerticalDisplacement, newValue => VerticalDisplacement = newValue, 0f, 2f);
+                EditorGUI.BeginDisabledGroup(VerticalDisplacement == 0);
+                if (ColoredBgButton(VerticalDisplacement != 0, Color.green, () => GUILayout.Button(ResetLabel, GUILayout.Width(150))))
                 {
-                    serializedObject.FindProperty(nameof(verticalDisplacement)).floatValue = 0;
+                    serializedObject.FindProperty(nameof(VerticalDisplacement)).floatValue = 0;
                 }
                 EditorGUI.EndDisabledGroup();
                 EditorGUILayout.EndHorizontal();
@@ -219,7 +246,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 EditorGUILayout.BeginHorizontal();
                 advanced = EditorGUILayout.Foldout(advanced, AdvancedLabel);
                 GUILayout.FlexibleSpace();
-                EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(postProcessing)));
+                PrefsToggle(nameof(PostProcessing), PostProcessing, newValue => PostProcessing = newValue);
                 EditorGUILayout.EndHorizontal();
             }
 
@@ -244,9 +271,9 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 EditorGUILayout.BeginVertical(GUILayout.Width(SidebarWidth));
             
                 EditorGUILayout.LabelField(RenderingLabel, EditorStyles.boldLabel);
-                EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(postProcessing)));
-                EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(muteLightsInsideObject)));
-                EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(supportDepthTexture)));
+                PrefsToggle(nameof(PostProcessing), PostProcessing, newValue => PostProcessing = newValue);
+                PrefsToggle(nameof(MuteLightsInsideObject), MuteLightsInsideObject, newValue => MuteLightsInsideObject = newValue);
+                PrefsToggle(nameof(SupportDepthTexture), SupportDepthTexture, newValue => SupportDepthTexture = newValue);
                 EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(referenceCamera)));
 
                 EditorGUI.BeginDisabledGroup(!enabled);
@@ -256,19 +283,22 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 }
                 EditorGUI.EndDisabledGroup();
 
-                EditorGUILayout.Separator();
-                EditorGUILayout.LabelField(CollectionsLabel, EditorStyles.boldLabel);
-                var definition = ProjectRenderQueue.DefinitionNullable;
-                if (definition != null)
+                if (enabled)
                 {
-                    foreach (var group in definition.viewGroups)
+                    EditorGUILayout.Separator();
+                    EditorGUILayout.LabelField(CollectionsLabel, EditorStyles.boldLabel);
+                    var definition = ProjectRenderQueue.DefinitionNullable;
+                    if (definition != null)
                     {
-                        var isSelected = group.key == selected;
-                        EditorGUI.BeginChangeCheck();
-                        EditorGUILayout.ToggleLeft(group.title, isSelected);
-                        if (EditorGUI.EndChangeCheck())
+                        foreach (var group in definition.viewGroups)
                         {
-                            selected = group.key;
+                            var isSelected = group.key == selected;
+                            EditorGUI.BeginChangeCheck();
+                            EditorGUILayout.ToggleLeft(group.title, isSelected);
+                            if (EditorGUI.EndChangeCheck())
+                            {
+                                selected = group.key;
+                            }
                         }
                     }
                 }
@@ -283,12 +313,12 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 _focusedObjectNullable = objectToView.gameObject;
                 ProjectRenderQueue.QueueSize(int.MaxValue);
                 ProjectRenderQueue.Roll(cameraRoll * 180);
-                ProjectRenderQueue.CounterRotate(counterRotate);
+                ProjectRenderQueue.CounterRotate(CounterRotate);
                 ProjectRenderQueue.Camera(referenceCamera);
-                ProjectRenderQueue.PostProcessing(postProcessing);
-                ProjectRenderQueue.VerticalDisplacement(verticalDisplacement);
-                ProjectRenderQueue.MuteLightsInsideObject(muteLightsInsideObject);
-                ProjectRenderQueue.EnableDepthTexture(supportDepthTexture, _depthEnabler);
+                ProjectRenderQueue.PostProcessing(PostProcessing);
+                ProjectRenderQueue.VerticalDisplacement(VerticalDisplacement);
+                ProjectRenderQueue.MuteLightsInsideObject(MuteLightsInsideObject);
+                ProjectRenderQueue.EnableDepthTexture(SupportDepthTexture, _depthEnabler);
                 ProjectRenderQueue.Selected(selected);
             }
             
@@ -346,6 +376,24 @@ namespace Hai.LightboxViewer.Scripts.Editor
             EditorGUILayout.EndVertical();
             EditorGUILayout.EndHorizontal();
             EditorGUILayout.EndScrollView();
+        }
+
+        private static void PrefsToggle(string propName, bool value, Action<bool> setterFn, params GUILayoutOption[] options)
+        {
+            var newValue = EditorGUILayout.Toggle(new GUIContent(ObjectNames.NicifyVariableName(propName)), value, options);
+            if (EditorGUI.EndChangeCheck())
+            {
+                setterFn(newValue);
+            }
+        }
+
+        private static void PrefsSlider(string propName, float value, Action<float> setterFn, float leftValue, float rightValue)
+        {
+            var newValue = EditorGUILayout.Slider(new GUIContent(ObjectNames.NicifyVariableName(propName)), value, leftValue, rightValue);
+            if (EditorGUI.EndChangeCheck())
+            {
+                setterFn(newValue);
+            }
         }
 
         private void RestartPlayMode()
@@ -527,6 +575,28 @@ namespace Hai.LightboxViewer.Scripts.Editor
         private string _selected;
 
         public LightboxViewerDefinition DefinitionNullable { get; private set; }
+
+        // Setters
+        public void QueueSize(int queueSize) => _queueSize = queueSize;
+        public void Roll(float roll) => _roll = roll;
+        public void Camera(Camera camera) => _cameraOptional = camera;
+        public void PostProcessing(bool postProcessing) => _postProcessing = postProcessing;
+        public void Width(int actualWidth) => _width = actualWidth;
+        public void Height(int actualHeight) => _height = actualHeight;
+        public void CounterRotate(bool counterRotate) => _counterRotate = counterRotate;
+        public void VerticalDisplacement(float verticalDisplacement) => _verticalDisplacement = verticalDisplacement;
+        public void MuteLightsInsideObject(bool muteLightsInsideObject) => _muteLightsInsideObject = muteLightsInsideObject;
+        public void Selected(string selected) => _selected = selected;
+        public void EnableDepthTexture(bool enableDepthTexture, GameObject depthEnabler)
+        {
+            _enableDepthTexture = enableDepthTexture;
+            _depthEnabler = depthEnabler;
+        }
+        
+        // Getters
+        public bool SceneIsChanged() => _openScene.isDirty;
+        public Texture[] Textures() => _textures;
+        public string[] Names() => _names;
 
         public LightboxViewerRenderQueue()
         {
@@ -731,26 +801,6 @@ namespace Hai.LightboxViewer.Scripts.Editor
             _previousViewer = viewer;
         }
 
-        public void QueueSize(int queueSize)
-        {
-            _queueSize = queueSize;
-        }
-
-        public void Roll(float roll)
-        {
-            _roll = roll;
-        }
-
-        public void Camera(Camera camera)
-        {
-            _cameraOptional = camera;
-        }
-
-        public void PostProcessing(bool postProcessing)
-        {
-            _postProcessing = postProcessing;
-        }
-
         public void LoadLightbox(SceneAsset lightbox)
         {
             _openScene = EditorSceneManager.OpenScene(AssetDatabase.GetAssetPath(lightbox), OpenSceneMode.Additive);
@@ -795,21 +845,6 @@ namespace Hai.LightboxViewer.Scripts.Editor
             }
         }
 
-        public bool SceneIsChanged()
-        {
-            return _openScene.isDirty;
-        }
-
-        public Texture[] Textures()
-        {
-            return _textures;
-        }
-
-        public string[] Names()
-        {
-            return _names;
-        }
-
         public void ForceRequireRenderAll()
         {
             var lightboxes = AllApplicableLightboxes();
@@ -824,22 +859,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 _names[i] = lightboxes[i].name;
             }
         }
-
-        public void Width(int actualWidth)
-        {
-            _width = actualWidth;
-        }
-
-        public void Height(int actualHeight)
-        {
-            _height = actualHeight;
-        }
-
-        public void CounterRotate(bool counterRotate)
-        {
-            _counterRotate = counterRotate;
-        }
-
+        
         public void SaveLightbox()
         {
             EditorSceneManager.SaveScene(_openScene);
@@ -857,6 +877,8 @@ namespace Hai.LightboxViewer.Scripts.Editor
             {
                 return DefinitionNullable.lightboxes;
             }
+            
+            // Below should be legacy behaviour for old custom scenes.
             
             var holder = _openScene.GetRootGameObjects()
                 .FirstOrDefault(o => o.name == "Lightboxes");
@@ -884,30 +906,11 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 return DefinitionNullable.viewGroups[0].members;
             }
             
+            // Below should be legacy behaviour for old custom scenes.
+            
             return AllLightboxes()
                 .Where(lightbox => !lightbox.CompareTag("EditorOnly"))
                 .ToArray();
-        }
-
-        public void VerticalDisplacement(float verticalDisplacement)
-        {
-            _verticalDisplacement = verticalDisplacement;
-        }
-
-        public void MuteLightsInsideObject(bool muteLightsInsideObject)
-        {
-            _muteLightsInsideObject = muteLightsInsideObject;
-        }
-
-        public void EnableDepthTexture(bool enableDepthTexture, GameObject depthEnabler)
-        {
-            _enableDepthTexture = enableDepthTexture;
-            _depthEnabler = depthEnabler;
-        }
-
-        public void Selected(string selected)
-        {
-            _selected = selected;
         }
     }
 }
