@@ -19,6 +19,22 @@ namespace Hai.LightboxViewer.Scripts.Editor
         private const string BasicSceneFolder = "1cef314dbf6e7814a8f2867c36e87835";
         private const string LightVolumesSceneFolder = "927b5f5dbdab0a74d93f997f9af74118";
         private const string DepthEnablerAsset = "b5094f9d6061779489b1ead6865042b2";
+        
+        private const string ActivateLightboxViewerLabel = "Activate LightboxViewer";
+        private const string AdvancedLabel = "Advanced";
+        private const string CollectionsLabel = "Collections";
+        private const string CounterRotateLabel = "Counter-rotate";
+        private const string DiscardLabel = "Discard";
+        private const string InstallPostProcessingLabel = "Install Post-processing";
+        private const string MsgInvalidLightboxScene = "Lightbox scene has no root GameObject named \"Lightboxes\", or it is empty.";
+        private const string MsgLightboxSceneModifiedPromptSave = "You have modified the lightbox scene.\nDo you want to save the lightbox scene?";
+        private const string MsgPlayModeRequiresPreActivation = "To use LightboxViewer in Play mode, activate it before entering Play mode.";
+        private const string MsgPostProcessingMissing = "Post-processing is missing from the project.\nInstall post-processing?";
+        private const string RealignLabel = "Realign";
+        private const string RenderingLabel = "Rendering";
+        private const string ResetLabel = "Reset";
+        private const string RestartPlayModeLabel = "Restart Play mode with LightboxViewer";
+        private const string SaveLabel = "Save";
 
         public Transform objectToView;
         public Camera referenceCamera;
@@ -127,10 +143,10 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.Slider(serializedObject.FindProperty(nameof(cameraRoll)), -1f, 1f);
-            EditorGUILayout.LabelField("Counter-rotate", GUILayout.Width(100));
+            EditorGUILayout.LabelField(CounterRotateLabel, GUILayout.Width(100));
             EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(counterRotate)), GUIContent.none, GUILayout.Width(EditorGUIUtility.singleLineHeight));
             EditorGUI.BeginDisabledGroup(cameraRoll == 0);
-            if (ColoredBgButton(cameraRoll != 0, Color.green, () => GUILayout.Button("Reset", GUILayout.Width(150))))
+            if (ColoredBgButton(cameraRoll != 0, Color.green, () => GUILayout.Button(ResetLabel, GUILayout.Width(150))))
             {
                 serializedObject.FindProperty(nameof(cameraRoll)).floatValue = 0;
             }
@@ -140,14 +156,14 @@ namespace Hai.LightboxViewer.Scripts.Editor
             if (objectToView == null || lightboxScene == null || SceneManager.GetSceneAt(0).path == AssetDatabase.GetAssetPath(lightboxScene))
             {
                 EditorGUI.BeginDisabledGroup(true);
-                ColoredBgButton(enabled, Color.red, () => GUILayout.Button("Activate LightboxViewer"));
+                ColoredBgButton(enabled, Color.red, () => GUILayout.Button(ActivateLightboxViewerLabel));
                 EditorGUI.EndDisabledGroup();
             }
             else if (Application.isPlaying && !enabled)
             {
                 EditorGUILayout.BeginHorizontal();
-                EditorGUILayout.HelpBox("To use LightboxViewer in Play mode, activate it before entering Play mode.", MessageType.Warning);
-                if (GUILayout.Button("Restart Play mode with LightboxViewer", GUILayout.Width(position.width / 2), GUILayout.Height(EditorGUIUtility.singleLineHeight * 2)))
+                EditorGUILayout.HelpBox(MsgPlayModeRequiresPreActivation, MessageType.Warning);
+                if (GUILayout.Button(RestartPlayModeLabel, GUILayout.Width(position.width / 2), GUILayout.Height(EditorGUIUtility.singleLineHeight * 2)))
                 {
                     EditorApplication.isPlaying = false;
                     EditorApplication.delayCall += RestartPlayMode;
@@ -158,16 +174,16 @@ namespace Hai.LightboxViewer.Scripts.Editor
             {
                 EditorGUILayout.BeginHorizontal();
                 EditorGUI.BeginDisabledGroup(true);
-                ColoredBgButton(enabled, Color.red, () => GUILayout.Button("Activate LightboxViewer", GUILayout.Height(EditorGUIUtility.singleLineHeight * 2)));
+                ColoredBgButton(enabled, Color.red, () => GUILayout.Button(ActivateLightboxViewerLabel, GUILayout.Height(EditorGUIUtility.singleLineHeight * 2)));
                 EditorGUI.EndDisabledGroup();
 
-                EditorGUILayout.HelpBox("You have modified the lightbox scene.\nDo you want to save the lightbox scene?", MessageType.Warning);
+                EditorGUILayout.HelpBox(MsgLightboxSceneModifiedPromptSave, MessageType.Warning);
                 headerLines += 2;
-                if (GUILayout.Button("Save", GUILayout.Width(100), GUILayout.Height(EditorGUIUtility.singleLineHeight * 2)))
+                if (GUILayout.Button(SaveLabel, GUILayout.Width(100), GUILayout.Height(EditorGUIUtility.singleLineHeight * 2)))
                 {
                     ProjectRenderQueue.SaveLightbox();
                 }
-                if (GUILayout.Button("Discard", GUILayout.Width(100), GUILayout.Height(EditorGUIUtility.singleLineHeight * 2)))
+                if (GUILayout.Button(DiscardLabel, GUILayout.Width(100), GUILayout.Height(EditorGUIUtility.singleLineHeight * 2)))
                 {
                     Disable();
                 }
@@ -176,7 +192,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
             else
             {
                 EditorGUI.BeginDisabledGroup(objectToView == null || Application.isPlaying);
-                if (ColoredBgButton(enabled, Color.red, () => GUILayout.Button("Activate LightboxViewer")))
+                if (ColoredBgButton(enabled, Color.red, () => GUILayout.Button(ActivateLightboxViewerLabel)))
                 {
                     ToggleLightboxViewer();
                 }
@@ -185,12 +201,12 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
             if (advanced)
             {
-                advanced = EditorGUILayout.Foldout(advanced, "Advanced");
+                advanced = EditorGUILayout.Foldout(advanced, AdvancedLabel);
 
                 EditorGUILayout.BeginHorizontal();
                 EditorGUILayout.Slider(serializedObject.FindProperty(nameof(verticalDisplacement)), 0, 2f);
                 EditorGUI.BeginDisabledGroup(verticalDisplacement == 0);
-                if (ColoredBgButton(verticalDisplacement != 0, Color.green, () => GUILayout.Button("Reset", GUILayout.Width(150))))
+                if (ColoredBgButton(verticalDisplacement != 0, Color.green, () => GUILayout.Button(ResetLabel, GUILayout.Width(150))))
                 {
                     serializedObject.FindProperty(nameof(verticalDisplacement)).floatValue = 0;
                 }
@@ -201,7 +217,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
             else
             {
                 EditorGUILayout.BeginHorizontal();
-                advanced = EditorGUILayout.Foldout(advanced, "Advanced");
+                advanced = EditorGUILayout.Foldout(advanced, AdvancedLabel);
                 GUILayout.FlexibleSpace();
                 EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(postProcessing)));
                 EditorGUILayout.EndHorizontal();
@@ -210,10 +226,10 @@ namespace Hai.LightboxViewer.Scripts.Editor
             if (PplType == null)
             {
                 EditorGUILayout.BeginHorizontal();
-                EditorGUILayout.HelpBox("Post-processing is missing from the project.\nInstall post-processing?", MessageType.Warning);
+                EditorGUILayout.HelpBox(MsgPostProcessingMissing, MessageType.Warning);
                 headerLines += 2;
                 EditorGUI.BeginDisabledGroup(_ppInstall);
-                if (GUILayout.Button("Install Post-processing", GUILayout.Width(200), GUILayout.Height(EditorGUIUtility.singleLineHeight * 2)))
+                if (GUILayout.Button(InstallPostProcessingLabel, GUILayout.Width(200), GUILayout.Height(EditorGUIUtility.singleLineHeight * 2)))
                 {
                     _ppInstall = true;
                     Client.Add("com.unity.postprocessing");
@@ -227,21 +243,21 @@ namespace Hai.LightboxViewer.Scripts.Editor
             {
                 EditorGUILayout.BeginVertical(GUILayout.Width(SidebarWidth));
             
-                EditorGUILayout.LabelField("Rendering", EditorStyles.boldLabel);
+                EditorGUILayout.LabelField(RenderingLabel, EditorStyles.boldLabel);
                 EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(postProcessing)));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(muteLightsInsideObject)));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(supportDepthTexture)));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(referenceCamera)));
 
                 EditorGUI.BeginDisabledGroup(!enabled);
-                if (GUILayout.Button("Realign"))
+                if (GUILayout.Button(RealignLabel))
                 {
                     Realign();
                 }
                 EditorGUI.EndDisabledGroup();
 
                 EditorGUILayout.Separator();
-                EditorGUILayout.LabelField("Collections", EditorStyles.boldLabel);
+                EditorGUILayout.LabelField(CollectionsLabel, EditorStyles.boldLabel);
                 var definition = ProjectRenderQueue.DefinitionNullable;
                 if (definition != null)
                 {
@@ -324,7 +340,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
             {
                 if (enabled)
                 {
-                    EditorGUILayout.HelpBox("Lightbox scene has no root GameObject named \"Lightboxes\", or it is empty.", MessageType.Error);
+                    EditorGUILayout.HelpBox(MsgInvalidLightboxScene, MessageType.Error);
                 }
             }
             EditorGUILayout.EndVertical();
