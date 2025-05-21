@@ -723,6 +723,14 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 if (that.isActiveAndEnabled && that.gameObject.scene != _openScene) all.Add(that);
             }
 
+            if (DefinitionNullable != null)
+            {
+                foreach (var hideInRender in DefinitionNullable.hideInRenders)
+                {
+                    hideInRender.SetActive(false);
+                }
+            }
+
             GameObject ourDepthEnabler = null;
             try
             {
@@ -732,6 +740,13 @@ namespace Hai.LightboxViewer.Scripts.Editor
             }
             finally
             {
+                if (DefinitionNullable != null)
+                {
+                    foreach (var hideInRender in DefinitionNullable.hideInRenders)
+                    {
+                        hideInRender.SetActive(true);
+                    }
+                }
                 foreach (var it in all) it.enabled = true;
                 var lightboxes = AllLightboxes();
                 for (var index = 0; index < lightboxes.Length; index++)

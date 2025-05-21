@@ -16,7 +16,7 @@ Material:
   m_InvalidKeywords: []
   m_LightmapFlags: 2
   m_EnableInstancingVariants: 0
-  m_DoubleSidedGI: 0
+  m_DoubleSidedGI: 1
   m_CustomRenderQueue: -1
   stringTagMap: {}
   disabledShaderPasses: []
@@ -80,5 +80,5 @@ Material:
     - _ZWrite: 1
     m_Colors:
     - _Color: {r: 1, g: 0.47070235, b: 0, a: 1}
-    - _EmissionColor: {r: 2, g: 0.94140494, b: 0, a: 1}
+    - _EmissionColor: {r: 2, g: 0.9414048, b: 0, a: 1}
   m_BuildTextureStacks: []

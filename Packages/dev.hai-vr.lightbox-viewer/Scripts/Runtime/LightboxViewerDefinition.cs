@@ -11,6 +11,7 @@ namespace Hai.LightboxViewer.Scripts.Runtime
     public class LightboxViewerDefinition : MonoBehaviour
     {
         public GameObject[] lightboxes;
+        public GameObject[] hideInRenders;
         public LightboxViewerViewGroup[] viewGroups;
 
         [Serializable]
