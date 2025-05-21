@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Hai.LightboxViewer.Scripts.Runtime;
 using UnityEditor;
 using UnityEditor.PackageManager;
 using UnityEditor.SceneManagement;
@@ -25,11 +26,11 @@ namespace Hai.LightboxViewer.Scripts.Editor
         public float cameraRoll;
         public bool counterRotate = true;
         public bool postProcessing = true;
-        public bool advanced;
+        public bool advanced = true;
         public float verticalDisplacement;
         public bool enabled;
         public bool muteLightsInsideObject;
-        public bool enableDepthTexture;
+        public bool supportDepthTexture;
         private Vector2 _scrollPos;
         private int _generatedSize;
         
@@ -112,7 +113,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
         private void OnGUI()
         {
-            var headerLines = 6.5f;
+            var headerLines = 5.5f;
 
             _scrollPos = GUILayout.BeginScrollView(_scrollPos, GUILayout.Height(position.height - EditorGUIUtility.singleLineHeight));
             var serializedObject = new SerializedObject(this);
@@ -185,10 +186,6 @@ namespace Hai.LightboxViewer.Scripts.Editor
             if (advanced)
             {
                 advanced = EditorGUILayout.Foldout(advanced, "Advanced");
-                EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(postProcessing)));;
-                EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(muteLightsInsideObject)));
-                EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(enableDepthTexture)));
-                EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(referenceCamera)));
 
                 EditorGUILayout.BeginHorizontal();
                 EditorGUILayout.Slider(serializedObject.FindProperty(nameof(verticalDisplacement)), 0, 2f);
@@ -199,14 +196,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 }
                 EditorGUI.EndDisabledGroup();
                 EditorGUILayout.EndHorizontal();
-
-                EditorGUI.BeginDisabledGroup(!enabled);
-                if (GUILayout.Button("Realign"))
-                {
-                    Realign();
-                }
-                EditorGUI.EndDisabledGroup();
-                headerLines += 5;
+                headerLines += 1;
             }
             else
             {
@@ -232,6 +222,44 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 EditorGUILayout.EndHorizontal();
             }
 
+            EditorGUILayout.BeginHorizontal();
+            if (advanced)
+            {
+                EditorGUILayout.BeginVertical(GUILayout.Width(SidebarWidth));
+            
+                EditorGUILayout.LabelField("Rendering", EditorStyles.boldLabel);
+                EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(postProcessing)));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(muteLightsInsideObject)));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(supportDepthTexture)));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(referenceCamera)));
+
+                EditorGUI.BeginDisabledGroup(!enabled);
+                if (GUILayout.Button("Realign"))
+                {
+                    Realign();
+                }
+                EditorGUI.EndDisabledGroup();
+
+                EditorGUILayout.Separator();
+                EditorGUILayout.LabelField("Collections", EditorStyles.boldLabel);
+                var definition = ProjectRenderQueue.DefinitionNullable;
+                if (definition != null)
+                {
+                    foreach (var group in definition.viewGroups)
+                    {
+                        var isSelected = group.key == selected;
+                        EditorGUI.BeginChangeCheck();
+                        EditorGUILayout.ToggleLeft(group.title, isSelected);
+                        if (EditorGUI.EndChangeCheck())
+                        {
+                            selected = group.key;
+                        }
+                    }
+                }
+            
+                EditorGUILayout.EndVertical();
+            }
+            
             serializedObject.ApplyModifiedProperties();
 
             if (objectToView != null)
@@ -244,32 +272,44 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 ProjectRenderQueue.PostProcessing(postProcessing);
                 ProjectRenderQueue.VerticalDisplacement(verticalDisplacement);
                 ProjectRenderQueue.MuteLightsInsideObject(muteLightsInsideObject);
-                ProjectRenderQueue.EnableDepthTexture(enableDepthTexture, _depthEnabler);
+                ProjectRenderQueue.EnableDepthTexture(supportDepthTexture, _depthEnabler);
+                ProjectRenderQueue.Selected(selected);
             }
-
-            var att = ProjectRenderQueue.Textures().ToArray();
+            
+            EditorGUILayout.BeginVertical();
+            var att = ProjectRenderQueue.Textures();
             if (att.Length != 0)
             {
                 var names = ProjectRenderQueue.Names();
 
-                var availableWidth = position.width;
+                var availableWidth = position.width - (advanced ? SidebarWidth + 10 : 0);
                 var availableHeight = position.height - EditorGUIUtility.singleLineHeight * headerLines;
 
-                var numberOfRows = Mathf.CeilToInt(Mathf.Sqrt(att.Length));
-                var numberOfColumns = (1 + (att.Length - 1) / numberOfRows);
+                int columns;
+                int rows;
+                if (att.Length == 3)
+                {
+                    columns = 3;
+                    rows = 1;
+                }
+                else
+                {
+                    columns = Mathf.CeilToInt(Mathf.Sqrt(att.Length));
+                    rows = (1 + (att.Length - 1) / columns);
+                }
 
                 var padding = 10;
-                var actualWidth = SanitizeTextureSize((int) availableWidth / numberOfRows - padding);
-                var actualHeight = SanitizeTextureSize((int) availableHeight / numberOfColumns - padding);
+                var actualWidth = SanitizeTextureSize((int) availableWidth / columns - padding);
+                var actualHeight = SanitizeTextureSize((int) availableHeight / rows - padding);
                 ProjectRenderQueue.Width(actualWidth);
                 ProjectRenderQueue.Height(actualHeight);
 
                 var bypassPlaymodeTintOldColor = GUI.color;
                 GUI.color = Color.white;
-                for (var i = 0; i < numberOfRows; i++)
+                for (var i = 0; i < columns; i++)
                 {
                     EditorGUILayout.BeginHorizontal();
-                    for (int k = i * numberOfRows; k < Math.Min(att.Length, (i * numberOfRows) + numberOfRows); k++)
+                    for (int k = i * columns; k < Math.Min(att.Length, (i * columns) + columns); k++)
                     {
                         var texture = att[k];
                         GUILayout.Box(new GUIContent(texture, names[k]), GUILayout.Width(actualWidth), GUILayout.Height(actualHeight));
@@ -287,6 +327,8 @@ namespace Hai.LightboxViewer.Scripts.Editor
                     EditorGUILayout.HelpBox("Lightbox scene has no root GameObject named \"Lightboxes\", or it is empty.", MessageType.Error);
                 }
             }
+            EditorGUILayout.EndVertical();
+            EditorGUILayout.EndHorizontal();
             EditorGUILayout.EndScrollView();
         }
 
@@ -402,6 +444,8 @@ namespace Hai.LightboxViewer.Scripts.Editor
         internal static FieldInfo PplVolumeLayerField;
         internal static FieldInfo PplVolumeTriggerField;
         private bool _ensured;
+        private float SidebarWidth = 200;
+        private string selected;
 
         static LightboxViewerEditorWindow()
         {
@@ -464,6 +508,9 @@ namespace Hai.LightboxViewer.Scripts.Editor
         private bool _muteLightsInsideObject;
         private bool _enableDepthTexture;
         private GameObject _depthEnabler;
+        private string _selected;
+
+        public LightboxViewerDefinition DefinitionNullable { get; private set; }
 
         public LightboxViewerRenderQueue()
         {
@@ -580,7 +627,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
             {
                 if (that.isActiveAndEnabled
                     && that.gameObject.scene != _openScene
-                    && (!_muteLightsInsideObject || !FirstIsAnyParentOfSecond(copy.transform, that.transform)))
+                    && (_muteLightsInsideObject || !FirstIsAnyParentOfSecond(copy.transform, that.transform)))
                 {
                     all.Add(that);
                 }
@@ -603,7 +650,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 var lightboxes = AllLightboxes();
                 for (var index = 0; index < lightboxes.Length; index++)
                 {
-                    lightboxes[index].SetActive(history[index]);
+                    lightboxes[index].gameObject.SetActive(history[index]);
                 }
                 Object.DestroyImmediate(ourDepthEnabler);
             }
@@ -620,12 +667,12 @@ namespace Hai.LightboxViewer.Scripts.Editor
         {
             var lightboxes = AllLightboxes();
             var history = lightboxes
-                .Select(o => o.activeSelf)
+                .Select(o => o.gameObject.activeSelf)
                 .ToArray();
 
             foreach (var lightbox in lightboxes)
             {
-                lightbox.SetActive(false);
+                lightbox.gameObject.SetActive(false);
             }
 
             return history;
@@ -652,9 +699,9 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 {
                     var lightboxIndex = _queue.Dequeue();
                     var currentLightbox = allApplicableLightboxes[lightboxIndex];
-                    currentLightbox.SetActive(true);
-                    viewer.RenderNoAnimator(_lightboxIndexToTexture[lightboxIndex], currentLightbox, renderTexture, _referentialVector, _referentialQuaternion, _verticalDisplacement);
-                    currentLightbox.SetActive(false);
+                    currentLightbox.gameObject.SetActive(true);
+                    viewer.RenderNoAnimator(_lightboxIndexToTexture[lightboxIndex], currentLightbox.gameObject, renderTexture, _referentialVector, _referentialQuaternion, _verticalDisplacement);
+                    currentLightbox.gameObject.SetActive(false);
 
                     itemCount++;
                 }
@@ -691,9 +738,25 @@ namespace Hai.LightboxViewer.Scripts.Editor
         public void LoadLightbox(SceneAsset lightbox)
         {
             _openScene = EditorSceneManager.OpenScene(AssetDatabase.GetAssetPath(lightbox), OpenSceneMode.Additive);
+            DefinitionNullable = GetDefinitionOrNull();
             LightProbes.Tetrahedralize();
             _sceneLoaded = true;
             ForceRequireRenderAll();
+        }
+
+        private LightboxViewerDefinition GetDefinitionOrNull()
+        {
+            var rootObjects = _openScene.GetRootGameObjects();
+            foreach (var obj in rootObjects)
+            {
+                var definition = obj.GetComponentInChildren<LightboxViewerDefinition>();
+                if (definition != null)
+                {
+                    return definition;
+                }
+            }
+            
+            return null;
         }
 
         public void EnsureLightbox(string path)
@@ -721,7 +784,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
             return _openScene.isDirty;
         }
 
-        public IEnumerable<Texture> Textures()
+        public Texture[] Textures()
         {
             return _textures;
         }
@@ -774,6 +837,11 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
         private GameObject[] AllLightboxes()
         {
+            if (DefinitionNullable != null)
+            {
+                return DefinitionNullable.lightboxes;
+            }
+            
             var holder = _openScene.GetRootGameObjects()
                 .FirstOrDefault(o => o.name == "Lightboxes");
 
@@ -787,6 +855,19 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
         private GameObject[] AllApplicableLightboxes()
         {
+            if (DefinitionNullable != null)
+            {
+                foreach (var group in DefinitionNullable.viewGroups)
+                {
+                    if (group.key == _selected)
+                    {
+                        return group.members;
+                    } 
+                }
+
+                return DefinitionNullable.viewGroups[0].members;
+            }
+            
             return AllLightboxes()
                 .Where(lightbox => !lightbox.CompareTag("EditorOnly"))
                 .ToArray();
@@ -806,6 +887,11 @@ namespace Hai.LightboxViewer.Scripts.Editor
         {
             _enableDepthTexture = enableDepthTexture;
             _depthEnabler = depthEnabler;
+        }
+
+        public void Selected(string selected)
+        {
+            _selected = selected;
         }
     }
 }

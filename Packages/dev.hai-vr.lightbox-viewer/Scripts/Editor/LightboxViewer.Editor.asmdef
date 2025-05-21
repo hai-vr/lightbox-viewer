@@ -1,6 +1,9 @@
 {
     "name": "LightboxViewer",
-    "references": [],
+    "rootNamespace": "",
+    "references": [
+        "LightboxViewer.Runtime"
+    ],
     "includePlatforms": [
         "Editor"
     ],
