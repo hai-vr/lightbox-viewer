@@ -27,6 +27,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
         public bool advanced;
         public float verticalDisplacement;
         public bool enabled;
+        public bool muteLightsInsideObject;
         private Vector2 _scrollPos;
         private int _generatedSize;
 
@@ -105,11 +106,13 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
             _scrollPos = GUILayout.BeginScrollView(_scrollPos, GUILayout.Height(position.height - EditorGUIUtility.singleLineHeight));
             var serializedObject = new SerializedObject(this);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(objectToView)));
 
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(objectToView)));
             EditorGUI.BeginDisabledGroup(enabled);
             EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(lightboxScene)));
             EditorGUI.EndDisabledGroup();
+            EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.Slider(serializedObject.FindProperty(nameof(cameraRoll)), -1f, 1f);
@@ -173,6 +176,8 @@ namespace Hai.LightboxViewer.Scripts.Editor
             {
                 advanced = EditorGUILayout.Foldout(advanced, "Advanced");
                 EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(postProcessing)));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(postProcessing)));;
+                EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(muteLightsInsideObject)));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(referenceCamera)));
 
                 EditorGUILayout.BeginHorizontal();
@@ -228,6 +233,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 ProjectRenderQueue.Camera(referenceCamera);
                 ProjectRenderQueue.PostProcessing(postProcessing);
                 ProjectRenderQueue.VerticalDisplacement(verticalDisplacement);
+                ProjectRenderQueue.MuteLightsInsideObject(muteLightsInsideObject);
             }
 
             var att = ProjectRenderQueue.Textures().ToArray();
@@ -444,6 +450,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
         private Camera _cameraOptional;
         private bool _postProcessing;
         private float _verticalDisplacement;
+        private bool _muteLightsInsideObject;
 
         public LightboxViewerRenderQueue()
         {
@@ -554,12 +561,22 @@ namespace Hai.LightboxViewer.Scripts.Editor
         private void Render(GameObject copy)
         {
             var history = RecordDisableLightboxes();
-            var allLights = Object.FindObjectsOfType<Light>().Where(light => light.isActiveAndEnabled);
-            var allReflectionProbes = Object.FindObjectsOfType<ReflectionProbe>().Where(reflectionProbe => reflectionProbe.isActiveAndEnabled);
-            var all = allLights
-                .Concat<Behaviour>(allReflectionProbes)
-                .Where(behaviour => behaviour.gameObject.scene != _openScene)
-                .ToArray();
+
+            var all = new List<Behaviour>();
+            foreach (var that in Object.FindObjectsByType<Light>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
+            {
+                if (that.isActiveAndEnabled
+                    && that.gameObject.scene != _openScene
+                    && (!_muteLightsInsideObject || !FirstIsAnyParentOfSecond(copy.transform, that.transform)))
+                {
+                    all.Add(that);
+                }
+            }
+            foreach (var that in Object.FindObjectsByType<ReflectionProbe>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
+            {
+                if (that.isActiveAndEnabled && that.gameObject.scene != _openScene) all.Add(that);
+            }
+
             try
             {
                 foreach (var it in all) it.enabled = false;
@@ -574,6 +591,13 @@ namespace Hai.LightboxViewer.Scripts.Editor
                     lightboxes[index].SetActive(history[index]);
                 }
             }
+        }
+
+        private bool FirstIsAnyParentOfSecond(Transform first, Transform second)
+        {
+            if (first == second) return true;
+            if (second.parent == null) return false;
+            return FirstIsAnyParentOfSecond(first, second.parent);
         }
 
         private bool[] RecordDisableLightboxes()
@@ -755,6 +779,11 @@ namespace Hai.LightboxViewer.Scripts.Editor
         public void VerticalDisplacement(float verticalDisplacement)
         {
             _verticalDisplacement = verticalDisplacement;
+        }
+
+        public void MuteLightsInsideObject(bool muteLightsInsideObject)
+        {
+            _muteLightsInsideObject = muteLightsInsideObject;
         }
     }
 }
