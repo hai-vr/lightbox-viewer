@@ -17,7 +17,8 @@ namespace Hai.LightboxViewer.Scripts.Editor
     {
         private const string BasicSceneFolder = "1cef314dbf6e7814a8f2867c36e87835";
         private const string LightVolumesSceneFolder = "927b5f5dbdab0a74d93f997f9af74118";
-        
+        private const string DepthEnablerAsset = "b5094f9d6061779489b1ead6865042b2";
+
         public Transform objectToView;
         public Camera referenceCamera;
         public SceneAsset lightboxScene;
@@ -28,8 +29,12 @@ namespace Hai.LightboxViewer.Scripts.Editor
         public float verticalDisplacement;
         public bool enabled;
         public bool muteLightsInsideObject;
+        public bool enableDepthTexture;
         private Vector2 _scrollPos;
         private int _generatedSize;
+        
+        // Special passes
+        private GameObject _depthEnabler;
 
         public LightboxViewerEditorWindow()
         {
@@ -51,6 +56,11 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
         private void OnEnable()
         {
+            if (_depthEnabler == null)
+            {
+                _depthEnabler = AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GUIDToAssetPath(DepthEnablerAsset));
+            }
+            
             if (lightboxScene == null)
             {
 #if !LIGHTBOXVIEWER_LIGHTVOLUMES_SUPPORTED
@@ -175,9 +185,9 @@ namespace Hai.LightboxViewer.Scripts.Editor
             if (advanced)
             {
                 advanced = EditorGUILayout.Foldout(advanced, "Advanced");
-                EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(postProcessing)));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(postProcessing)));;
                 EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(muteLightsInsideObject)));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(enableDepthTexture)));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(referenceCamera)));
 
                 EditorGUILayout.BeginHorizontal();
@@ -234,6 +244,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 ProjectRenderQueue.PostProcessing(postProcessing);
                 ProjectRenderQueue.VerticalDisplacement(verticalDisplacement);
                 ProjectRenderQueue.MuteLightsInsideObject(muteLightsInsideObject);
+                ProjectRenderQueue.EnableDepthTexture(enableDepthTexture, _depthEnabler);
             }
 
             var att = ProjectRenderQueue.Textures().ToArray();
@@ -451,6 +462,8 @@ namespace Hai.LightboxViewer.Scripts.Editor
         private bool _postProcessing;
         private float _verticalDisplacement;
         private bool _muteLightsInsideObject;
+        private bool _enableDepthTexture;
+        private GameObject _depthEnabler;
 
         public LightboxViewerRenderQueue()
         {
@@ -577,8 +590,10 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 if (that.isActiveAndEnabled && that.gameObject.scene != _openScene) all.Add(that);
             }
 
+            GameObject ourDepthEnabler = null;
             try
             {
+                if (_enableDepthTexture) ourDepthEnabler = Object.Instantiate(_depthEnabler);
                 foreach (var it in all) it.enabled = false;
                 TrueRender(copy);
             }
@@ -590,6 +605,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 {
                     lightboxes[index].SetActive(history[index]);
                 }
+                Object.DestroyImmediate(ourDepthEnabler);
             }
         }
 
@@ -784,6 +800,12 @@ namespace Hai.LightboxViewer.Scripts.Editor
         public void MuteLightsInsideObject(bool muteLightsInsideObject)
         {
             _muteLightsInsideObject = muteLightsInsideObject;
+        }
+
+        public void EnableDepthTexture(bool enableDepthTexture, GameObject depthEnabler)
+        {
+            _enableDepthTexture = enableDepthTexture;
+            _depthEnabler = depthEnabler;
         }
     }
 }
