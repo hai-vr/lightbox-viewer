@@ -18,6 +18,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
     {
         private const string BasicSceneFolder = "1cef314dbf6e7814a8f2867c36e87835";
         private const string LightVolumesSceneFolder = "927b5f5dbdab0a74d93f997f9af74118";
+        private const string IntegrationsSceneFolder = "1344adbf490e06446bc631910cf2c56d";
         private const string DepthEnablerAsset = "b5094f9d6061779489b1ead6865042b2";
         
         private const string ActivateLightboxViewerLabel = "Activate LightboxViewer";
@@ -108,7 +109,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
 #if !LIGHTBOXVIEWER_LIGHTVOLUMES_SUPPORTED
                 var sceneToUse = BasicSceneFolder;
 #else
-                var sceneToUse = LightVolumesSceneFolder;
+                var sceneToUse = IntegrationsSceneFolder;
 #endif
                 var path = AssetDatabase.GUIDToAssetPath(sceneToUse);
                 if (path != null)
