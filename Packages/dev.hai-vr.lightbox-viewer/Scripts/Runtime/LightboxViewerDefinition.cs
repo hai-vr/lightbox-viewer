@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Hai.LightboxViewer.Scripts.Runtime
 {
 #if IS_RESILIENCE_DEV
-    [AddComponentMenu("Haï/LightboxViewerDefinition")]
+    [AddComponentMenu("Haï/Lightbox Viewer Definition")]
 #else
     [AddComponentMenu("/")]
 #endif

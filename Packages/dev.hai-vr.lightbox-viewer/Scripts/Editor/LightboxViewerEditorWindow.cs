@@ -574,6 +574,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
         private GameObject _depthEnabler;
         private string _selected;
 
+        private bool _foundDefinition;
         public LightboxViewerDefinition DefinitionNullable { get; private set; }
 
         // Setters
@@ -634,6 +635,13 @@ namespace Hai.LightboxViewer.Scripts.Editor
             }
 
             if (_queue.Count == 0) return false;
+
+            // Handle weird case of exiting Play Mode while activated
+            if (_foundDefinition && DefinitionNullable == null)
+            {
+                DefinitionNullable = GetDefinitionOrNull();
+                _foundDefinition = DefinitionNullable != null;
+            }
 
             if (Application.isPlaying)
             {
@@ -799,12 +807,15 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 while (_queue.Count > 0 && itemCount < _queueSize)
                 {
                     var lightboxIndex = _queue.Dequeue();
-                    var currentLightbox = allApplicableLightboxes[lightboxIndex];
-                    currentLightbox.gameObject.SetActive(true);
-                    viewer.RenderNoAnimator(_lightboxIndexToTexture[lightboxIndex], currentLightbox.gameObject, renderTexture, _referentialVector, _referentialQuaternion, _verticalDisplacement);
-                    currentLightbox.gameObject.SetActive(false);
+                    if (allApplicableLightboxes.Length > lightboxIndex)
+                    {
+                        var currentLightbox = allApplicableLightboxes[lightboxIndex];
+                        currentLightbox.gameObject.SetActive(true);
+                        viewer.RenderNoAnimator(_lightboxIndexToTexture[lightboxIndex], currentLightbox.gameObject, renderTexture, _referentialVector, _referentialQuaternion, _verticalDisplacement);
+                        currentLightbox.gameObject.SetActive(false);
 
-                    itemCount++;
+                        itemCount++;
+                    }
                 }
                 RenderTexture.ReleaseTemporary(renderTexture);
             }
@@ -820,6 +831,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
         {
             _openScene = EditorSceneManager.OpenScene(AssetDatabase.GetAssetPath(lightbox), OpenSceneMode.Additive);
             DefinitionNullable = GetDefinitionOrNull();
+            _foundDefinition = DefinitionNullable != null;
             LightProbes.Tetrahedralize();
             _sceneLoaded = true;
             ForceRequireRenderAll();
