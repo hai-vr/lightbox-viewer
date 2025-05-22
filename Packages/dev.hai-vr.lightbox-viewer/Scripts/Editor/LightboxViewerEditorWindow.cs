@@ -575,6 +575,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
         private GameObject _depthEnabler;
         private string _selected;
 
+        private bool _searchedForDefinition;
         private bool _foundDefinition;
         public LightboxViewerDefinition DefinitionNullable { get; private set; }
 
@@ -638,10 +639,11 @@ namespace Hai.LightboxViewer.Scripts.Editor
             if (_queue.Count == 0) return false;
 
             // Handle weird case of exiting Play Mode while activated
-            if (_foundDefinition && DefinitionNullable == null)
+            if (!_searchedForDefinition || _foundDefinition && DefinitionNullable == null)
             {
                 DefinitionNullable = GetDefinitionOrNull();
                 _foundDefinition = DefinitionNullable != null;
+                _searchedForDefinition = true;
             }
 
             if (Application.isPlaying)
@@ -833,6 +835,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
             _openScene = EditorSceneManager.OpenScene(AssetDatabase.GetAssetPath(lightbox), OpenSceneMode.Additive);
             DefinitionNullable = GetDefinitionOrNull();
             _foundDefinition = DefinitionNullable != null;
+            _searchedForDefinition = true;
             LightProbes.Tetrahedralize();
             _sceneLoaded = true;
             ForceRequireRenderAll();
