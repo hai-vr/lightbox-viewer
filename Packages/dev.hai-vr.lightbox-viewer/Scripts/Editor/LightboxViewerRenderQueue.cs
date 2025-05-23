@@ -215,7 +215,16 @@ namespace Hai.LightboxViewer.Scripts.Editor
         
         public void ObjectChangeEvent(ref ObjectChangeEventStream stream)
         {
-            var requireDisposition = false;
+            var needsDispose = ShouldDisposeDueToChange(stream);
+            if (needsDispose)
+            {
+                DisposeOfCopiedObject();
+            }
+        }
+
+        private bool ShouldDisposeDueToChange(ObjectChangeEventStream stream)
+        {
+            var originalAvatarRoot = _previousOriginalObject.transform;
             for (var i = 0; i < stream.length; i++)
             {
                 var eventType = stream.GetEventType(i);
@@ -223,24 +232,31 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 {
                     stream.GetChangeGameObjectOrComponentPropertiesEvent(i, out var data);
                     var instance = EditorUtility.InstanceIDToObject(data.instanceId);
-                    var eventCannotBeIgnored = instance is not Transform;
-                    if (eventCannotBeIgnored)
+
+                    var isPartOfAvatar = instance is GameObject go && FirstIsAnyParentOfSecond(originalAvatarRoot, go.transform)
+                                         || instance is Component component && FirstIsAnyParentOfSecond(originalAvatarRoot, component.transform);
+
+                    if (isPartOfAvatar)
                     {
-                        requireDisposition = true;
-                        break;
+                        if (instance is not Transform)
+                        {
+                            return true;
+                        }
+                        if (instance != originalAvatarRoot)
+                        {
+                            // TODO: Figure out a way to carry over changes in child transforms without having to dispose.
+                            return true;
+                        }
                     }
                 }
                 else
                 {
-                    requireDisposition = true;
-                    break;
+                    // TODO: This also causes dispose if things happen outside of the avatar. This could be narrowed down.
+                    return true;
                 }
             }
 
-            if (requireDisposition)
-            {
-                DisposeOfCopiedObject();
-            }
+            return false;
         }
 
         private void DisposeOfCopiedObject()
