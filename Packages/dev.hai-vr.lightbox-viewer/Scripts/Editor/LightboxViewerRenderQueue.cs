@@ -4,6 +4,7 @@ using Hai.LightboxViewer.Scripts.Runtime;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.Profiling;
 using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
 
@@ -114,7 +115,9 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 var scale = root.transform.localScale;
                 try
                 {
+                    Profiler.BeginSample("LightboxViewer.Render");
                     Render(root);
+                    Profiler.EndSample();
                 }
                 finally
                 {
@@ -130,6 +133,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 var wasActive = originalAvatarGo.activeSelf;
                 try
                 {
+                    Profiler.BeginSample("LightboxViewer.TryRender.PreventiveCopying");
                     if (WhenInEditMode_DestroyAllMonoBehaviours)
                     {
                         // Parent the copy to an inactive object during instantiation, so that we can delete all MonoBehaviours
@@ -161,15 +165,30 @@ namespace Hai.LightboxViewer.Scripts.Editor
                     {
                         copy = Object.Instantiate(originalAvatarGo);
                     }
+                    Profiler.EndSample();
                     
+                    Profiler.BeginSample("LightboxViewer.TryRender.SettingCopyActive");
                     copy.SetActive(true);
+                    Profiler.EndSample();
+                    
+                    Profiler.BeginSample("LightboxViewer.TryRender.SettingMainInactive");
                     originalAvatarGo.SetActive(false);
+                    Profiler.EndSample();
+                    
+                    Profiler.BeginSample("LightboxViewer.Render");
                     Render(copy);
+                    Profiler.EndSample();
                 }
                 finally
                 {
+                    Profiler.BeginSample("LightboxViewer.TryRender.SettingMainActive");
                     if (wasActive) originalAvatarGo.SetActive(true);
+                    Profiler.EndSample();
+                    
+                    
+                    Profiler.BeginSample("LightboxViewer.TryRender.DestroyingCopy");
                     if (copy != null) Object.DestroyImmediate(copy);
+                    Profiler.EndSample();
                 }
             }
 
@@ -178,8 +197,11 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
         private void Render(GameObject copy)
         {
+            Profiler.BeginSample("LightboxViewer.Render.DisableLightboxes");
             var history = RecordDisableLightboxes();
+            Profiler.EndSample();
 
+            Profiler.BeginSample("LightboxViewer.Render.ResolveConflictingObjects");
             var all = new List<Behaviour>();
             foreach (var that in Object.FindObjectsByType<Light>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
             {
@@ -194,6 +216,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
             {
                 if (that.isActiveAndEnabled && that.gameObject.scene != _openScene) all.Add(that);
             }
+            Profiler.EndSample();
 
             if (DefinitionNullable != null)
             {
@@ -207,11 +230,18 @@ namespace Hai.LightboxViewer.Scripts.Editor
             try
             {
                 if (_enableDepthTexture) ourDepthEnabler = Object.Instantiate(_depthEnabler);
+                
+                Profiler.BeginSample("LightboxViewer.Render.DisableConflictingObjects");
                 foreach (var it in all) it.enabled = false;
+                Profiler.EndSample();
+                
+                Profiler.BeginSample("LightboxViewer.Render.TrueRender");
                 TrueRender(copy);
+                Profiler.EndSample();
             }
             finally
             {
+                Profiler.BeginSample("LightboxViewer.Render.RestoreConflictingObjects");
                 if (DefinitionNullable != null)
                 {
                     foreach (var hideInRender in DefinitionNullable.hideInRenders)
@@ -225,6 +255,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 {
                     lightboxes[index].gameObject.SetActive(history[index]);
                 }
+                Profiler.EndSample();
                 Object.DestroyImmediate(ourDepthEnabler);
             }
         }
@@ -260,9 +291,11 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
                 if (!Application.isPlaying)
                 {
+                    Profiler.BeginSample("LightboxViewer.TrueRender.PreventFlickering");
                     // Fixes a problem where the avatar is flickering
                     copy.gameObject.SetActive(false);
                     copy.gameObject.SetActive(true);
+                    Profiler.EndSample();
                 }
 
                 var itemCount = 0;

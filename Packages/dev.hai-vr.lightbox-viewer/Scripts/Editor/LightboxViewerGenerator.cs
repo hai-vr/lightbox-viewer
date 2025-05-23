@@ -1,5 +1,6 @@
 ﻿using UnityEditor;
 using UnityEngine;
+using UnityEngine.Profiling;
 using UnityEngine.Rendering;
 using Object = UnityEngine.Object;
 
@@ -22,7 +23,9 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 _material.SetFloat("_CounterRoll", -customRoll / 180f);
             }
 
+            Profiler.BeginSample("LightboxViewer.Generator.Begin.AddCameraComponent");
             _camera = cameraOptional != null ? Object.Instantiate(cameraOptional) : new GameObject().AddComponent<Camera>();
+            Profiler.EndSample();
 
             var sceneCamera = SceneView.lastActiveSceneView.camera;
             _camera.transform.position = sceneCamera.transform.position;

@@ -4,6 +4,7 @@ using System.Reflection;
 using UnityEditor;
 using UnityEditor.PackageManager;
 using UnityEngine;
+using UnityEngine.Profiling;
 using UnityEngine.SceneManagement;
 
 // ReSharper disable once CheckNamespace
@@ -131,7 +132,9 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
             if (objectToView == null) return;
 
+            Profiler.BeginSample("LightboxViewer.Update.UpdateAny");
             UpdateAny();
+            Profiler.EndSample();
         }
 
         private void OnDisable()
@@ -527,8 +530,15 @@ namespace Hai.LightboxViewer.Scripts.Editor
             {
                 _ensured = false;
             }
+            
+            Profiler.BeginSample("LightboxViewer.ForceRequireRenderAll");
             ProjectRenderQueue.ForceRequireRenderAll();
+            Profiler.EndSample();
+            
+            Profiler.BeginSample("LightboxViewer.Rerender");
             var didRerender = Rerender();
+            Profiler.EndSample();
+            
             if (didRerender && _repaint != null)
             {
                 _repaint.Invoke();
