@@ -236,7 +236,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 EditorGUI.BeginDisabledGroup(VerticalDisplacement == 0);
                 if (ColoredBgButton(VerticalDisplacement != 0, Color.green, () => GUILayout.Button(ResetLabel, GUILayout.Width(150))))
                 {
-                    serializedObject.FindProperty(nameof(VerticalDisplacement)).floatValue = 0;
+                    VerticalDisplacement = 0;
                 }
                 EditorGUI.EndDisabledGroup();
                 EditorGUILayout.EndHorizontal();
