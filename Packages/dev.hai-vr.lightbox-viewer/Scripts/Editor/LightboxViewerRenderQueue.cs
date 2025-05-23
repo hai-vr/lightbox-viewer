@@ -293,7 +293,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
         private void Render(GameObject copy)
         {
-            if (WhenInEditMode_ReuseCachedCopy)
+            if (!Application.isPlaying && WhenInEditMode_ReuseCachedCopy)
             {
                 copy.transform.localPosition = _previousOriginalObject.transform.localPosition;
                 copy.transform.localRotation = _previousOriginalObject.transform.localRotation;
@@ -362,7 +362,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 Object.DestroyImmediate(ourDepthEnabler);
             }
 
-            if (WhenInEditMode_ReuseCachedCopy)
+            if (!Application.isPlaying && WhenInEditMode_ReuseCachedCopy)
             {
                 copy.transform.localPosition = Vector3.down * 10_000;
             }
