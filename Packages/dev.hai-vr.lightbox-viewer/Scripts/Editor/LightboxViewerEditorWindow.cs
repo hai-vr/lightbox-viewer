@@ -154,6 +154,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
         private void OnGUI()
         {
+            Profiler.BeginSample("LightboxViewer.EditorWindow.OnGUI");
             var headerLines = 5.5f;
 
             _scrollPos = GUILayout.BeginScrollView(_scrollPos, GUILayout.Height(position.height - EditorGUIUtility.singleLineHeight));
@@ -376,6 +377,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
             EditorGUILayout.EndVertical();
             EditorGUILayout.EndHorizontal();
             EditorGUILayout.EndScrollView();
+            Profiler.EndSample();
         }
 
         private static void PrefsToggle(string propName, bool value, Action<bool> setterFn, params GUILayoutOption[] options)
@@ -439,6 +441,12 @@ namespace Hai.LightboxViewer.Scripts.Editor
             // This normally fixes itself when entering Play mode, but this will allow not needing to enter Play mode.
             var LessEqual = 4;
             Shader.SetGlobalInt("unity_GUIZTestMode", LessEqual);
+
+            if (LightboxViewerRenderQueue.WhenInEditMode_ReuseCachedCopy)
+            {
+                ObjectChangeEvents.changesPublished -= OnObjectChange;
+                ObjectChangeEvents.changesPublished += OnObjectChange;
+            }
         }
 
         private void Realign()
@@ -455,6 +463,11 @@ namespace Hai.LightboxViewer.Scripts.Editor
             var so = new SerializedObject(this);
             so.FindProperty(nameof(enabled)).boolValue = false;
             so.ApplyModifiedPropertiesWithoutUndo();
+
+            if (LightboxViewerRenderQueue.WhenInEditMode_ReuseCachedCopy)
+            {
+                ObjectChangeEvents.changesPublished -= OnObjectChange;
+            }
         }
 
         private void UsingObjectToView(Transform newObjectToView)
@@ -552,6 +565,11 @@ namespace Hai.LightboxViewer.Scripts.Editor
             if (_focusedObjectNullable == null) return false;
 
             return ProjectRenderQueue.TryRender(_focusedObjectNullable);
+        }
+
+        private void OnObjectChange(ref ObjectChangeEventStream stream)
+        {
+            ProjectRenderQueue.ObjectChangeEvent(ref stream);
         }
     }
 }

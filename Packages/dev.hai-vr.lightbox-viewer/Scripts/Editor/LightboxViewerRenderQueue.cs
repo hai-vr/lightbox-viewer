@@ -13,7 +13,11 @@ namespace Hai.LightboxViewer.Scripts.Editor
 {
     public class LightboxViewerRenderQueue
     {
-        private const bool WhenInEditMode_DestroyAllMonoBehaviours = true;
+        // TODO: We may need to set this to false on older versions of Unity, as ObjectChangeEvent was added in Unity 2021.
+        internal const bool WhenInEditMode_ReuseCachedCopy = true;
+        internal const bool WhenInEditMode_DestroyAllMonoBehaviours = true;
+        
+        internal const bool WhenInEditMode_DoNotDisableMainAvatar = true;
         
         private readonly Dictionary<int, Texture2D> _lightboxIndexToTexture;
         private readonly Queue<int> _queue;
@@ -39,6 +43,8 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
         private bool _searchedForDefinition;
         private bool _foundDefinition;
+        private GameObject _previousOriginalObject;
+        private GameObject _copiedObject;
         public LightboxViewerDefinition DefinitionNullable { get; private set; }
 
         // Setters
@@ -110,93 +116,190 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
             if (Application.isPlaying)
             {
-                var pos = root.transform.position;
-                var rot = root.transform.rotation;
-                var scale = root.transform.localScale;
-                try
-                {
-                    Profiler.BeginSample("LightboxViewer.Render");
-                    Render(root);
-                    Profiler.EndSample();
-                }
-                finally
-                {
-                    root.transform.position = pos;
-                    root.transform.rotation = rot;
-                    root.transform.localScale = scale;
-                }
+                PlayModeRender(root);
             }
             else
             {
-                var originalAvatarGo = root;
-                GameObject copy = null;
-                var wasActive = originalAvatarGo.activeSelf;
-                try
-                {
-                    Profiler.BeginSample("LightboxViewer.TryRender.PreventiveCopying");
-                    if (WhenInEditMode_DestroyAllMonoBehaviours)
-                    {
-                        // Parent the copy to an inactive object during instantiation, so that we can delete all MonoBehaviours
-                        // without triggering their OnEnable and OnDestroy functions
-                        copy = new GameObject
-                        {
-                            transform =
-                            {
-                                position = originalAvatarGo.transform.position,
-                                rotation = originalAvatarGo.transform.rotation,
-                                localScale = originalAvatarGo.transform.localScale
-                            } 
-                        };
-                        copy.SetActive(false);
-                    
-                        var innerCopy = Object.Instantiate(originalAvatarGo, copy.transform, true);
-                        var allMonoBehaviours = innerCopy.GetComponentsInChildren<MonoBehaviour>(true);
-                        foreach (var monoBehaviourNullable in allMonoBehaviours)
-                        {
-                            // GetComponentsInChildren may return null MonoBehaviour if their script can't be loaded
-                            if (monoBehaviourNullable != null)
-                            {
-                                Object.DestroyImmediate(monoBehaviourNullable);
-                            }
-                        }
-                        innerCopy.SetActive(true);
-                    }
-                    else
-                    {
-                        copy = Object.Instantiate(originalAvatarGo);
-                    }
-                    Profiler.EndSample();
-                    
-                    Profiler.BeginSample("LightboxViewer.TryRender.SettingCopyActive");
-                    copy.SetActive(true);
-                    Profiler.EndSample();
-                    
-                    Profiler.BeginSample("LightboxViewer.TryRender.SettingMainInactive");
-                    originalAvatarGo.SetActive(false);
-                    Profiler.EndSample();
-                    
-                    Profiler.BeginSample("LightboxViewer.Render");
-                    Render(copy);
-                    Profiler.EndSample();
-                }
-                finally
-                {
-                    Profiler.BeginSample("LightboxViewer.TryRender.SettingMainActive");
-                    if (wasActive) originalAvatarGo.SetActive(true);
-                    Profiler.EndSample();
-                    
-                    
-                    Profiler.BeginSample("LightboxViewer.TryRender.DestroyingCopy");
-                    if (copy != null) Object.DestroyImmediate(copy);
-                    Profiler.EndSample();
-                }
+                EditModeRender(root);
             }
 
             return true;
         }
 
+        private void PlayModeRender(GameObject root)
+        {
+            var pos = root.transform.position;
+            var rot = root.transform.rotation;
+            var scale = root.transform.localScale;
+            try
+            {
+                Profiler.BeginSample("LightboxViewer.Render");
+                Render(root);
+                Profiler.EndSample();
+            }
+            finally
+            {
+                root.transform.position = pos;
+                root.transform.rotation = rot;
+                root.transform.localScale = scale;
+            }
+        }
+
+        private void EditModeRender(GameObject originalAvatarGo)
+        {
+            if (WhenInEditMode_ReuseCachedCopy)
+            {
+                if (_copiedObject == null || _previousOriginalObject != originalAvatarGo)
+                {
+                    DisposeOfCopiedObject();
+                
+                    _copiedObject = CreateCopy(originalAvatarGo);
+                    
+                    _previousOriginalObject = originalAvatarGo;
+                }
+            }
+                
+            GameObject copy;
+            var wasActive = originalAvatarGo.activeSelf;
+            try
+            {
+                Profiler.BeginSample("LightboxViewer.TryRender.PreventiveCopying");
+                if (WhenInEditMode_ReuseCachedCopy)
+                {
+                    copy = _copiedObject;
+                }
+                else if (WhenInEditMode_DestroyAllMonoBehaviours)
+                {
+                    // Parent the copy to an inactive object during instantiation, so that we can delete all MonoBehaviours
+                    // without triggering their OnEnable and OnDestroy functions
+                    copy = CreateCopy(originalAvatarGo);
+                }
+                else
+                {
+                    copy = Object.Instantiate(originalAvatarGo);
+                }
+                Profiler.EndSample();
+                    
+                Profiler.BeginSample("LightboxViewer.TryRender.SettingCopyActive");
+                copy.SetActive(true);
+                Profiler.EndSample();
+                    
+                if (!WhenInEditMode_DoNotDisableMainAvatar)
+                {
+                    Profiler.BeginSample("LightboxViewer.TryRender.SettingMainInactive");
+                    originalAvatarGo.SetActive(false);
+                    Profiler.EndSample();
+                }
+                    
+                Profiler.BeginSample("LightboxViewer.Render");
+                Render(copy);
+                Profiler.EndSample();
+            }
+            finally
+            {
+                if (!WhenInEditMode_DoNotDisableMainAvatar)
+                {
+                    Profiler.BeginSample("LightboxViewer.TryRender.SettingMainActive");
+                    if (wasActive) originalAvatarGo.SetActive(true);
+                    Profiler.EndSample();
+                }
+
+                if (!WhenInEditMode_ReuseCachedCopy)
+                {
+                    Profiler.BeginSample("LightboxViewer.TryRender.DestroyingCopy");
+                    if (copy != null) Object.DestroyImmediate(copy);
+                    Profiler.EndSample();
+                }
+            }
+        }
+        
+        public void ObjectChangeEvent(ref ObjectChangeEventStream stream)
+        {
+            var requireDisposition = false;
+            for (var i = 0; i < stream.length; i++)
+            {
+                var eventType = stream.GetEventType(i);
+                if (eventType == ObjectChangeKind.ChangeGameObjectOrComponentProperties)
+                {
+                    stream.GetChangeGameObjectOrComponentPropertiesEvent(i, out var data);
+                    var instance = EditorUtility.InstanceIDToObject(data.instanceId);
+                    var eventCannotBeIgnored = instance is not Transform;
+                    if (eventCannotBeIgnored)
+                    {
+                        requireDisposition = true;
+                        break;
+                    }
+                }
+                else
+                {
+                    requireDisposition = true;
+                    break;
+                }
+            }
+
+            if (requireDisposition)
+            {
+                DisposeOfCopiedObject();
+            }
+        }
+
+        private void DisposeOfCopiedObject()
+        {
+            if (_copiedObject == null) return;
+            
+            Object.DestroyImmediate(_copiedObject);
+            _copiedObject = null;
+            _previousOriginalObject = null;
+        }
+
+        private static GameObject CreateCopy(GameObject originalAvatarGo)
+        {
+            var copy = new GameObject
+            {
+                name = "LightboxAvatarHolder",
+                transform =
+                {
+                    position = originalAvatarGo.transform.position,
+                    rotation = originalAvatarGo.transform.rotation,
+                    localScale = originalAvatarGo.transform.localScale
+                } 
+            };
+            copy.SetActive(false);
+                    
+            var innerCopy = Object.Instantiate(originalAvatarGo, copy.transform, true);
+            var allMonoBehaviours = innerCopy.GetComponentsInChildren<MonoBehaviour>(true);
+            foreach (var monoBehaviourNullable in allMonoBehaviours)
+            {
+                // GetComponentsInChildren may return null MonoBehaviour if their script can't be loaded
+                if (monoBehaviourNullable != null)
+                {
+                    Object.DestroyImmediate(monoBehaviourNullable);
+                }
+            }
+            
+            // Animators are slow because they rebind when the object is re-enabled. Don't bother doing this.
+            var allAnimators = innerCopy.GetComponentsInChildren<Animator>(true);
+            foreach (var animator in allAnimators)
+            {
+                Object.DestroyImmediate(animator);
+            }
+            
+            innerCopy.SetActive(true);
+
+            copy.hideFlags = HideFlags.HideAndDontSave;
+            
+            return copy;
+        }
+
         private void Render(GameObject copy)
         {
+            if (WhenInEditMode_ReuseCachedCopy)
+            {
+                copy.transform.localPosition = _previousOriginalObject.transform.localPosition;
+                copy.transform.localRotation = _previousOriginalObject.transform.localRotation;
+                copy.transform.localScale = _previousOriginalObject.transform.localScale;
+            }
+            
             Profiler.BeginSample("LightboxViewer.Render.DisableLightboxes");
             var history = RecordDisableLightboxes();
             Profiler.EndSample();
@@ -257,6 +360,11 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 }
                 Profiler.EndSample();
                 Object.DestroyImmediate(ourDepthEnabler);
+            }
+
+            if (WhenInEditMode_ReuseCachedCopy)
+            {
+                copy.transform.localPosition = Vector3.down * 10_000;
             }
         }
 
@@ -368,6 +476,8 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 _sceneLoaded = false;
                 _openScene = default;
             }
+
+            DisposeOfCopiedObject();
         }
 
         public void ForceRequireRenderAll()

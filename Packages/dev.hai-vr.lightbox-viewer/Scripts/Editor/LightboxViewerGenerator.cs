@@ -128,6 +128,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 return;
             }
 
+            Profiler.BeginSample("LightboxViewer.Readback");
             texture2D.LoadRawTextureData(request.GetData<uint>());
             texture2D.Apply();
 
@@ -141,6 +142,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 RenderTexture.ReleaseTemporary(diff);
                 SyncRenderTextureTo(diff, texture2D);
             }
+            Profiler.EndSample();
         }
 
         public int IsStillRendering()
