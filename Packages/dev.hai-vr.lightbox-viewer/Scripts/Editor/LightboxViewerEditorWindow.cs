@@ -5,6 +5,7 @@ using UnityEditor;
 using UnityEditor.PackageManager;
 using UnityEngine;
 using UnityEngine.Profiling;
+using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
 
 // ReSharper disable once CheckNamespace
@@ -16,6 +17,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
         private const string BasicSceneFolder = "1cef314dbf6e7814a8f2867c36e87835";
         private const string LightVolumesSceneFolder = "927b5f5dbdab0a74d93f997f9af74118";
         private const string IntegrationsSceneFolder = "1344adbf490e06446bc631910cf2c56d";
+        private const string BasicURPSceneFolder = "785caa78655b9d341aa02f92ba43e800";
         private const string DepthEnablerAsset = "b5094f9d6061779489b1ead6865042b2";
         
         private const string ActivateLightboxViewerLabel = "Activate LightboxViewer";
@@ -75,6 +77,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
         
         // Special passes
         private GameObject _depthEnabler;
+        private bool _isBuiltInRenderPipeline;
 
         public LightboxViewerEditorWindow()
         {
@@ -101,12 +104,14 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 _depthEnabler = AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GUIDToAssetPath(DepthEnablerAsset));
             }
             
+            _isBuiltInRenderPipeline = GraphicsSettings.currentRenderPipeline == null;
+            
             if (lightboxScene == null)
             {
 #if !LIGHTBOXVIEWER_LIGHTVOLUMES_SUPPORTED
-                var sceneToUse = BasicSceneFolder;
+                var sceneToUse = _isBuiltInRenderPipeline ? BasicSceneFolder : BasicURPSceneFolder;
 #else
-                var sceneToUse = IntegrationsSceneFolder;
+                var sceneToUse = _isBuiltInRenderPipeline ? IntegrationsSceneFolder : BasicURPSceneFolder;
 #endif
                 var path = AssetDatabase.GUIDToAssetPath(sceneToUse);
                 if (path != null)
@@ -251,7 +256,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 EditorGUILayout.EndHorizontal();
             }
 
-            if (PplType == null)
+            if (_isBuiltInRenderPipeline && PplType == null)
             {
                 EditorGUILayout.BeginHorizontal();
                 EditorGUILayout.HelpBox(MsgPostProcessingMissing, MessageType.Warning);
