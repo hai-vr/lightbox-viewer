@@ -9,6 +9,13 @@ namespace Hai.LightboxViewer.Scripts.Editor
 {
     public class LightboxViewerGenerator
     {
+        private const bool DoNotUseAsyncReadback =
+#if LIGHTBOX_VIEWER_DO_NOT_USE_ASYNC_READBACK
+            true;
+#else
+            false;
+#endif
+        
         private GameObject _animatedRoot;
         private Camera _camera;
         private Material _material;
@@ -79,7 +86,14 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 renderTexture.wrapMode = TextureWrapMode.Clamp;
 
                 RenderCamera(renderTexture, _camera);
-                AsyncRenderTextureTo(renderTexture, element);
+                if (SystemInfo.supportsAsyncGPUReadback && !DoNotUseAsyncReadback)
+                {
+                    AsyncRenderTextureTo(renderTexture, element);
+                }
+                else
+                {
+                    SyncRenderTextureTo(renderTexture, element);
+                }
             }
             finally
             {
