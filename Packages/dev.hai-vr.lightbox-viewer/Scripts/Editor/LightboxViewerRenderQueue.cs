@@ -19,12 +19,12 @@ namespace Hai.LightboxViewer.Scripts.Editor
         
         internal const bool WhenInEditMode_DoNotDisableMainAvatar = true;
         
-        private readonly Dictionary<int, Texture2D> _lightboxIndexToTexture;
+        private readonly Dictionary<int, Texture> _lightboxIndexToTexture;
         private readonly Queue<int> _queue;
         private int _queueSize;
         private Scene _openScene;
         private bool _sceneLoaded;
-        private Texture2D[] _textures = new Texture2D[1];
+        private Texture[] _textures = new Texture[1];
         private string[] _names = new string[1];
         private int _width = 512;
         private int _height = 512;
@@ -71,11 +71,11 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
         public LightboxViewerRenderQueue()
         {
-            _lightboxIndexToTexture = new Dictionary<int, Texture2D>();
+            _lightboxIndexToTexture = new Dictionary<int, Texture>();
             _queue = new Queue<int>();
         }
 
-        private Texture2D RequireRender(int lightboxIndex, int width, int height)
+        private Texture RequireRender(int lightboxIndex, int width, int height)
         {
             if (_lightboxIndexToTexture.ContainsKey(lightboxIndex)
                 && _lightboxIndexToTexture[lightboxIndex] != null // Can happen when the texture is destroyed (Unity invalid object)
@@ -89,7 +89,11 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 return _lightboxIndexToTexture[lightboxIndex];
             }
 
-            var texture = new Texture2D(width, height, TextureFormat.RGB24, false);
+            if (_lightboxIndexToTexture.ContainsKey(lightboxIndex))
+            {
+                Object.DestroyImmediate(_lightboxIndexToTexture[lightboxIndex]);
+            }
+            var texture = new RenderTexture(width, height, 0, RenderTextureFormat.ARGB32);
             _lightboxIndexToTexture[lightboxIndex] = texture; // TODO: Dimensions
 
             _queue.Enqueue(lightboxIndex);
@@ -423,7 +427,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 }
 
                 var itemCount = 0;
-                var renderTexture = RenderTexture.GetTemporary(_lightboxIndexToTexture[0].width, _lightboxIndexToTexture[0].height, 24);
+                RenderTexture renderTexture = null;
                 var allApplicableLightboxes = AllApplicableLightboxes();
                 while (_queue.Count > 0 && itemCount < _queueSize)
                 {
@@ -438,7 +442,6 @@ namespace Hai.LightboxViewer.Scripts.Editor
                         itemCount++;
                     }
                 }
-                RenderTexture.ReleaseTemporary(renderTexture);
             }
             finally
             {
@@ -501,7 +504,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
             var lightboxes = AllApplicableLightboxes();
             if (_textures.Length != lightboxes.Length)
             {
-                _textures = new Texture2D[lightboxes.Length];
+                _textures = new Texture[lightboxes.Length];
                 _names = new string[lightboxes.Length];
             }
             for (var i = 0; i < lightboxes.Length; i++)

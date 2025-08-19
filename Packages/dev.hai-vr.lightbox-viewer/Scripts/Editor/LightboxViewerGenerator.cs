@@ -19,6 +19,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
         private GameObject _animatedRoot;
         private Camera _camera;
         private Material _material;
+        private bool _needsCounterRoll;
 
         public void Begin(GameObject animatedRoot, float customRoll, bool counterRotate, Camera cameraOptional, bool usePostProcessing)
         {
@@ -29,6 +30,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 _material = new Material(Shader.Find("Hai/LightboxViewerCounterRoll"));
                 _material.SetFloat("_CounterRoll", -customRoll / 180f);
             }
+            _needsCounterRoll = isCustomRollSlanted && counterRotate;
 
             Profiler.BeginSample("LightboxViewer.Generator.Begin.AddCameraComponent");
             _camera = cameraOptional != null ? Object.Instantiate(cameraOptional) : new GameObject().AddComponent<Camera>();
@@ -65,7 +67,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
             Object.DestroyImmediate(_camera.gameObject);
         }
 
-        public void RenderNoAnimator(Texture2D element, GameObject currentLightbox, RenderTexture renderTexture, Vector3 referentialVector, Quaternion referentialQuaternion, float verticalDisplacement)
+        public void RenderNoAnimator(Texture element, GameObject currentLightbox, RenderTexture renderTexture, Vector3 referentialVector, Quaternion referentialQuaternion, float verticalDisplacement)
         {
             var rootTransform = _animatedRoot.transform;
             var camTransform = _camera.transform;
@@ -83,16 +85,34 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 camTransform.rotation = currentLightbox.transform.rotation * referentialQuaternion * camTransform.rotation;
                 rootTransform.rotation = currentLightbox.transform.rotation * referentialQuaternion * rootTransform.rotation;
 
-                renderTexture.wrapMode = TextureWrapMode.Clamp;
-
-                RenderCamera(renderTexture, _camera);
-                if (SystemInfo.supportsAsyncGPUReadback && !DoNotUseAsyncReadback)
+                if (element is RenderTexture rt)
                 {
-                    AsyncRenderTextureTo(renderTexture, element);
+                    RenderCamera(rt, _camera);
+                    if (_needsCounterRoll && _material != null)
+                    {
+                        var diff = RenderTexture.GetTemporary(rt.width, rt.height, 24);
+                        Graphics.Blit(rt, diff);
+                        
+                        _material.SetTexture("_MainTex", diff);
+                        var ratio = rt.width / (float)rt.height;
+                        _material.SetFloat("_Ratio", ratio);
+                        Graphics.Blit(diff, rt, _material);
+                        
+                        RenderTexture.ReleaseTemporary(diff);
+                    }
                 }
-                else
+                else if (false)
                 {
-                    SyncRenderTextureTo(renderTexture, element);
+                    renderTexture.wrapMode = TextureWrapMode.Clamp;
+                    RenderCamera(renderTexture, _camera);
+                    if (SystemInfo.supportsAsyncGPUReadback && !DoNotUseAsyncReadback)
+                    {
+                        AsyncRenderTextureTo(renderTexture, element as Texture2D);
+                    }
+                    else
+                    {
+                        SyncRenderTextureTo(renderTexture, element as Texture2D);
+                    }
                 }
             }
             finally
