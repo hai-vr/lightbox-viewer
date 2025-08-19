@@ -427,7 +427,6 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 }
 
                 var itemCount = 0;
-                RenderTexture renderTexture = null;
                 var allApplicableLightboxes = AllApplicableLightboxes();
                 while (_queue.Count > 0 && itemCount < _queueSize)
                 {
@@ -436,7 +435,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
                     {
                         var currentLightbox = allApplicableLightboxes[lightboxIndex];
                         currentLightbox.gameObject.SetActive(true);
-                        viewer.RenderNoAnimator(_lightboxIndexToTexture[lightboxIndex], currentLightbox.gameObject, renderTexture, _referentialVector, _referentialQuaternion, _verticalDisplacement);
+                        viewer.RenderNoAnimator(_lightboxIndexToTexture[lightboxIndex], currentLightbox.gameObject, _referentialVector, _referentialQuaternion, _verticalDisplacement);
                         currentLightbox.gameObject.SetActive(false);
 
                         itemCount++;

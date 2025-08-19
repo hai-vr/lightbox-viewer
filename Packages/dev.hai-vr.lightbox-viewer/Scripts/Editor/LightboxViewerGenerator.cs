@@ -9,12 +9,6 @@ namespace Hai.LightboxViewer.Scripts.Editor
 {
     public class LightboxViewerGenerator
     {
-        private const bool DoNotUseAsyncReadback =
-#if LIGHTBOX_VIEWER_DO_NOT_USE_ASYNC_READBACK
-            true;
-#else
-            false;
-#endif
         
         private GameObject _animatedRoot;
         private Camera _camera;
@@ -67,7 +61,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
             Object.DestroyImmediate(_camera.gameObject);
         }
 
-        public void RenderNoAnimator(Texture element, GameObject currentLightbox, RenderTexture renderTexture, Vector3 referentialVector, Quaternion referentialQuaternion, float verticalDisplacement)
+        public void RenderNoAnimator(Texture element, GameObject currentLightbox, Vector3 referentialVector, Quaternion referentialQuaternion, float verticalDisplacement)
         {
             var rootTransform = _animatedRoot.transform;
             var camTransform = _camera.transform;
@@ -101,19 +95,6 @@ namespace Hai.LightboxViewer.Scripts.Editor
                         RenderTexture.ReleaseTemporary(diff);
                     }
                 }
-                else if (false)
-                {
-                    renderTexture.wrapMode = TextureWrapMode.Clamp;
-                    RenderCamera(renderTexture, _camera);
-                    if (SystemInfo.supportsAsyncGPUReadback && !DoNotUseAsyncReadback)
-                    {
-                        AsyncRenderTextureTo(renderTexture, element as Texture2D);
-                    }
-                    else
-                    {
-                        SyncRenderTextureTo(renderTexture, element as Texture2D);
-                    }
-                }
             }
             finally
             {
@@ -139,44 +120,6 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 camera.targetTexture = originalRenderTexture;
                 camera.aspect = originalAspect;
             }
-        }
-
-        private void AsyncRenderTextureTo(RenderTexture renderTexture, Texture2D texture2D)
-        {
-            AsyncGPUReadback.Request(renderTexture, 0, TextureFormat.RGB24, request => OnCompleteReadback(request, texture2D));
-        }
-
-        private void SyncRenderTextureTo(RenderTexture renderTexture, Texture2D texture2D)
-        {
-            RenderTexture.active = renderTexture;
-            texture2D.ReadPixels(new Rect(0, 0, renderTexture.width, renderTexture.height), 0, 0);
-            texture2D.Apply();
-            RenderTexture.active = null;
-        }
-
-        private void OnCompleteReadback(AsyncGPUReadbackRequest request, Texture2D texture2D)
-        {
-            if (texture2D == null)
-            {
-                // Can happen after exiting Play mode (without "no domain reload")
-                return;
-            }
-
-            Profiler.BeginSample("LightboxViewer.Readback");
-            texture2D.LoadRawTextureData(request.GetData<uint>());
-            texture2D.Apply();
-
-            if (_material != null)
-            {
-                _material.SetTexture("_MainTex", texture2D);
-                var ratio = texture2D.width / (float)texture2D.height;
-                _material.SetFloat("_Ratio", ratio);
-                var diff = RenderTexture.GetTemporary(texture2D.width, texture2D.height, 24);
-                Graphics.Blit(texture2D, diff, _material);
-                RenderTexture.ReleaseTemporary(diff);
-                SyncRenderTextureTo(diff, texture2D);
-            }
-            Profiler.EndSample();
         }
 
         public int IsStillRendering()
