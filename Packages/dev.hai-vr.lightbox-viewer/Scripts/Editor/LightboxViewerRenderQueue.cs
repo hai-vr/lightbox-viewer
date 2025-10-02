@@ -16,9 +16,9 @@ namespace Hai.LightboxViewer.Scripts.Editor
         // TODO: We may need to set this to false on older versions of Unity, as ObjectChangeEvent was added in Unity 2021.
         internal const bool WhenInEditMode_ReuseCachedCopy = true;
         internal const bool WhenInEditMode_DestroyAllMonoBehaviours = true;
-        
+
         internal const bool WhenInEditMode_DoNotDisableMainAvatar = true;
-        
+
         private readonly Dictionary<int, Texture> _lightboxIndexToTexture;
         private readonly Queue<int> _queue;
         private int _queueSize;
@@ -63,7 +63,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
             _enableDepthTexture = enableDepthTexture;
             _depthEnabler = depthEnabler;
         }
-        
+
         // Getters
         public bool SceneIsChanged() => _openScene.isDirty;
         public Texture[] Textures() => _textures;
@@ -93,7 +93,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
             {
                 Object.DestroyImmediate(_lightboxIndexToTexture[lightboxIndex]);
             }
-            var texture = new RenderTexture(width, height, 0, RenderTextureFormat.ARGB32);
+            var texture = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32);
             _lightboxIndexToTexture[lightboxIndex] = texture; // TODO: Dimensions
 
             _queue.Enqueue(lightboxIndex);
@@ -156,13 +156,13 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 if (_copiedObject == null || _previousOriginalObject != originalAvatarGo)
                 {
                     DisposeOfCopiedObject();
-                
+
                     _copiedObject = CreateCopy(originalAvatarGo);
-                    
+
                     _previousOriginalObject = originalAvatarGo;
                 }
             }
-                
+
             GameObject copy;
             var wasActive = originalAvatarGo.activeSelf;
             try
@@ -183,18 +183,18 @@ namespace Hai.LightboxViewer.Scripts.Editor
                     copy = Object.Instantiate(originalAvatarGo);
                 }
                 Profiler.EndSample();
-                    
+
                 Profiler.BeginSample("LightboxViewer.TryRender.SettingCopyActive");
                 copy.SetActive(true);
                 Profiler.EndSample();
-                    
+
                 if (!WhenInEditMode_DoNotDisableMainAvatar)
                 {
                     Profiler.BeginSample("LightboxViewer.TryRender.SettingMainInactive");
                     originalAvatarGo.SetActive(false);
                     Profiler.EndSample();
                 }
-                    
+
                 Profiler.BeginSample("LightboxViewer.Render");
                 Render(copy);
                 Profiler.EndSample();
@@ -216,7 +216,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 }
             }
         }
-        
+
         public void ObjectChangeEvent(ref ObjectChangeEventStream stream)
         {
             var needsDispose = ShouldDisposeDueToChange(stream);
@@ -266,7 +266,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
         private void DisposeOfCopiedObject()
         {
             if (_copiedObject == null) return;
-            
+
             Object.DestroyImmediate(_copiedObject);
             _copiedObject = null;
             _previousOriginalObject = null;
@@ -282,10 +282,10 @@ namespace Hai.LightboxViewer.Scripts.Editor
                     position = originalAvatarGo.transform.position,
                     rotation = originalAvatarGo.transform.rotation,
                     localScale = originalAvatarGo.transform.localScale
-                } 
+                }
             };
             copy.SetActive(false);
-                    
+
             var innerCopy = Object.Instantiate(originalAvatarGo, copy.transform, true);
             var allMonoBehaviours = innerCopy.GetComponentsInChildren<MonoBehaviour>(true);
             foreach (var monoBehaviourNullable in allMonoBehaviours)
@@ -296,18 +296,18 @@ namespace Hai.LightboxViewer.Scripts.Editor
                     Object.DestroyImmediate(monoBehaviourNullable);
                 }
             }
-            
+
             // Animators are slow because they rebind when the object is re-enabled. Don't bother doing this.
             var allAnimators = innerCopy.GetComponentsInChildren<Animator>(true);
             foreach (var animator in allAnimators)
             {
                 Object.DestroyImmediate(animator);
             }
-            
+
             innerCopy.SetActive(true);
 
             copy.hideFlags = HideFlags.HideAndDontSave;
-            
+
             return copy;
         }
 
@@ -319,7 +319,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 copy.transform.localRotation = _previousOriginalObject.transform.localRotation;
                 copy.transform.localScale = _previousOriginalObject.transform.localScale;
             }
-            
+
             Profiler.BeginSample("LightboxViewer.Render.DisableLightboxes");
             var history = RecordDisableLightboxes();
             Profiler.EndSample();
@@ -353,11 +353,11 @@ namespace Hai.LightboxViewer.Scripts.Editor
             try
             {
                 if (_enableDepthTexture) ourDepthEnabler = Object.Instantiate(_depthEnabler);
-                
+
                 Profiler.BeginSample("LightboxViewer.Render.DisableConflictingObjects");
                 foreach (var it in all) it.enabled = false;
                 Profiler.EndSample();
-                
+
                 Profiler.BeginSample("LightboxViewer.Render.TrueRender");
                 TrueRender(copy);
                 Profiler.EndSample();
@@ -472,7 +472,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
                     return definition;
                 }
             }
-            
+
             return null;
         }
 
@@ -512,7 +512,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 _names[i] = lightboxes[i].name;
             }
         }
-        
+
         public void SaveLightbox()
         {
             EditorSceneManager.SaveScene(_openScene);
@@ -530,9 +530,9 @@ namespace Hai.LightboxViewer.Scripts.Editor
             {
                 return DefinitionNullable.lightboxes;
             }
-            
+
             // Below should be legacy behaviour for old custom scenes.
-            
+
             var holder = _openScene.GetRootGameObjects()
                 .FirstOrDefault(o => o.name == "Lightboxes");
 
@@ -553,14 +553,14 @@ namespace Hai.LightboxViewer.Scripts.Editor
                     if (group.key == _selected)
                     {
                         return group.members;
-                    } 
+                    }
                 }
 
                 return DefinitionNullable.viewGroups[0].members;
             }
-            
+
             // Below should be legacy behaviour for old custom scenes.
-            
+
             return AllLightboxes()
                 .Where(lightbox => !lightbox.CompareTag("EditorOnly"))
                 .ToArray();

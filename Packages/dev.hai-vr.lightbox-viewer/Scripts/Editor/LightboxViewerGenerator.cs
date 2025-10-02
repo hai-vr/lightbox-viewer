@@ -9,7 +9,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
 {
     public class LightboxViewerGenerator
     {
-        
+
         private GameObject _animatedRoot;
         private Camera _camera;
         private Material _material;
@@ -81,17 +81,21 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
                 if (element is RenderTexture rt)
                 {
+                    RenderTexture.active = rt;
+                    GL.Clear(true, true, Color.clear);
+                    RenderTexture.active = null;
+
                     RenderCamera(rt, _camera);
                     if (_needsCounterRoll && _material != null)
                     {
-                        var diff = RenderTexture.GetTemporary(rt.width, rt.height, 24);
+                        var diff = RenderTexture.GetTemporary(rt.width, rt.height, 24, RenderTextureFormat.ARGB32);
                         Graphics.Blit(rt, diff);
-                        
+
                         _material.SetTexture("_MainTex", diff);
                         var ratio = rt.width / (float)rt.height;
                         _material.SetFloat("_Ratio", ratio);
                         Graphics.Blit(diff, rt, _material);
-                        
+
                         RenderTexture.ReleaseTemporary(diff);
                     }
                 }
@@ -109,16 +113,22 @@ namespace Hai.LightboxViewer.Scripts.Editor
         {
             var originalRenderTexture = camera.targetTexture;
             var originalAspect = camera.aspect;
+            var originalColor = camera.backgroundColor;
+            var originalClearFlags = camera.clearFlags;
             try
             {
                 camera.targetTexture = renderTexture;
                 camera.aspect = (float) renderTexture.width / renderTexture.height;
+                camera.backgroundColor = Color.black;
+                camera.clearFlags = CameraClearFlags.SolidColor;
                 camera.Render();
             }
             finally
             {
                 camera.targetTexture = originalRenderTexture;
                 camera.aspect = originalAspect;
+                camera.backgroundColor = originalColor;
+                camera.clearFlags = originalClearFlags;
             }
         }
 
