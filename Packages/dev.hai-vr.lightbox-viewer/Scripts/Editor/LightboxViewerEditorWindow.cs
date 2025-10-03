@@ -6,6 +6,9 @@ using UnityEditor.PackageManager;
 using UnityEngine;
 using UnityEngine.Profiling;
 using UnityEngine.Rendering;
+#if LIGHTBOXVIEWER_URP_SUPPORTED
+using UnityEngine.Rendering.Universal;
+#endif
 using UnityEngine.SceneManagement;
 
 // ReSharper disable once CheckNamespace
@@ -14,10 +17,10 @@ namespace Hai.LightboxViewer.Scripts.Editor
     [InitializeOnLoad]
     public class LightboxViewerEditorWindow : EditorWindow
     {
-        private const string BasicSceneFolder = "1cef314dbf6e7814a8f2867c36e87835";
-        private const string LightVolumesSceneFolder = "927b5f5dbdab0a74d93f997f9af74118";
-        private const string IntegrationsSceneFolder = "1344adbf490e06446bc631910cf2c56d";
-        private const string BasicURPSceneFolder = "785caa78655b9d341aa02f92ba43e800";
+        private const string BIRPLightProbesSceneFolder = "1cef314dbf6e7814a8f2867c36e87835";
+        private const string BIRPREDSIMSceneFolder = "1344adbf490e06446bc631910cf2c56d";
+        private const string URPAdaptiveProbeVolumesSceneFolder = "785caa78655b9d341aa02f92ba43e800";
+        private const string URPLightProbesSceneFolder = "5087027db2a433c47952becea6b721a4";
         private const string DepthEnablerAsset = "b5094f9d6061779489b1ead6865042b2";
         
         private const string ActivateLightboxViewerLabel = "Activate LightboxViewer";
@@ -78,6 +81,8 @@ namespace Hai.LightboxViewer.Scripts.Editor
         // Special passes
         private GameObject _depthEnabler;
         private bool _isBuiltInRenderPipeline;
+        private bool _isUsingLightProbes;
+        private bool _isREDSIMAvailable;
 
         public LightboxViewerEditorWindow()
         {
@@ -104,21 +109,84 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 _depthEnabler = AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GUIDToAssetPath(DepthEnablerAsset));
             }
             
-            _isBuiltInRenderPipeline = GraphicsSettings.currentRenderPipeline == null;
-            
+#if LIGHTBOXVIEWER_URP_SUPPORTED
+            QualitySettings.activeQualityLevelChanged += OnQualityLevelChanged;
+#endif
+            ReevaluateRenderPipelineSettings();
+
             if (lightboxScene == null)
             {
-#if !LIGHTBOXVIEWER_LIGHTVOLUMES_SUPPORTED
-                var sceneToUse = _isBuiltInRenderPipeline ? BasicSceneFolder : BasicURPSceneFolder;
-#else
-                var sceneToUse = _isBuiltInRenderPipeline ? IntegrationsSceneFolder : BasicURPSceneFolder;
-#endif
-                var path = AssetDatabase.GUIDToAssetPath(sceneToUse);
+                var path = SelectScenePathOrNull();
                 if (path != null)
                 {
                     lightboxScene = AssetDatabase.LoadAssetAtPath<SceneAsset>($"{path}.unity");
                 }
             }
+        }
+
+        private void OnQualityLevelChanged(int arg1, int arg2)
+        {
+            ReevaluateRenderPipelineSettings();
+
+            if (!Application.isPlaying && !_isBuiltInRenderPipeline)
+            {
+                var wasEnabled = enabled;
+                if (wasEnabled)
+                {
+                    Disable();
+                    var path = SelectScenePathOrNull();
+                    if (path != null)
+                    {
+                        lightboxScene = AssetDatabase.LoadAssetAtPath<SceneAsset>($"{path}.unity");
+                    }
+                    Enable();
+                }
+            }
+        }
+
+        private string SelectScenePathOrNull()
+        {
+            string sceneToUse;
+            if (_isBuiltInRenderPipeline)
+            {
+                sceneToUse = _isREDSIMAvailable ? BIRPREDSIMSceneFolder : BIRPLightProbesSceneFolder;
+            }
+            else
+            {
+                sceneToUse = !_isUsingLightProbes ? URPAdaptiveProbeVolumesSceneFolder : URPLightProbesSceneFolder;
+            }
+            
+            return AssetDatabase.GUIDToAssetPath(sceneToUse);
+        }
+
+        private void ReevaluateRenderPipelineSettings()
+        {
+            _isBuiltInRenderPipeline = GraphicsSettings.currentRenderPipeline == null;
+            if (!_isBuiltInRenderPipeline)
+            {
+#if LIGHTBOXVIEWER_URP_SUPPORTED
+                if (QualitySettings.renderPipeline is UniversalRenderPipelineAsset urp)
+                {
+                    _isUsingLightProbes = urp.lightProbeSystem == LightProbeSystem.LegacyLightProbes;
+                }
+                else
+                {
+                    _isUsingLightProbes = true;
+                }
+#else
+                _isUsingLightProbes = true;
+#endif
+            }
+            else
+            {
+                _isUsingLightProbes = true;
+            }
+            
+#if LIGHTBOXVIEWER_REDSIM_SUPPORTED
+            _isREDSIMAvailable = true;
+#else
+            _isREDSIMAvailable = false;
+#endif
         }
 
         private void Update()
@@ -148,6 +216,9 @@ namespace Hai.LightboxViewer.Scripts.Editor
             {
                 Disable();
             }
+#if LIGHTBOXVIEWER_URP_SUPPORTED
+            QualitySettings.activeQualityLevelChanged -= OnQualityLevelChanged;
+#endif
         }
 
         // private void DuringSceneGui(SceneView obj)

@@ -2,7 +2,8 @@
     "name": "LightboxViewer",
     "rootNamespace": "",
     "references": [
-        "LightboxViewer.Runtime"
+        "LightboxViewer.Runtime",
+        "Unity.RenderPipelines.Universal.Runtime"
     ],
     "includePlatforms": [
         "Editor"
@@ -17,7 +18,12 @@
         {
             "name": "red.sim.lightvolumes",
             "expression": "0.7.2",
-            "define": "LIGHTBOXVIEWER_LIGHTVOLUMES_SUPPORTED"
+            "define": "LIGHTBOXVIEWER_REDSIM_SUPPORTED"
+        },
+        {
+            "name": "com.unity.render-pipelines.universal",
+            "expression": "",
+            "define": "LIGHTBOXVIEWER_URP_SUPPORTED"
         }
     ],
     "noEngineReferences": false
