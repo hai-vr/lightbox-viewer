@@ -13,6 +13,8 @@ namespace Hai.LightboxViewer.Scripts.Editor
 {
     public class LightboxViewerRenderQueue
     {
+        private const string DefaultLightingDataAssetPath = "Resources/unity_builtin_extra";
+        
         // TODO: We may need to set this to false on older versions of Unity, as ObjectChangeEvent was added in Unity 2021.
         internal const bool WhenInEditMode_ReuseCachedCopy = true;
         internal const bool WhenInEditMode_DestroyAllMonoBehaviours = true;
@@ -24,6 +26,8 @@ namespace Hai.LightboxViewer.Scripts.Editor
         private int _queueSize;
         private Scene _openScene;
         private bool _sceneLoaded;
+        private bool _wasUsingDefaultLightingData;
+        private LightingDataAsset _previousLightingData;
         private Texture[] _textures = new Texture[1];
         private string[] _names = new string[1];
         private int _width = 512;
@@ -452,6 +456,12 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
         public void LoadLightbox(SceneAsset lightbox)
         {
+            _wasUsingDefaultLightingData = IsUsingDefaultLightingData();
+            if (_wasUsingDefaultLightingData)
+            {
+                _previousLightingData = Lightmapping.lightingDataAsset;
+                Lightmapping.lightingDataAsset = null;
+            }
             _openScene = EditorSceneManager.OpenScene(AssetDatabase.GetAssetPath(lightbox), OpenSceneMode.Additive);
             DefinitionNullable = GetDefinitionOrNull();
             _foundDefinition = DefinitionNullable != null;
@@ -489,6 +499,10 @@ namespace Hai.LightboxViewer.Scripts.Editor
         {
             if (_sceneLoaded)
             {
+                if (_wasUsingDefaultLightingData)
+                {
+                    Lightmapping.lightingDataAsset = _previousLightingData;
+                }
                 EditorSceneManager.CloseScene(_openScene, true);
                 LightProbes.Tetrahedralize();
                 _sceneLoaded = false;
@@ -564,6 +578,18 @@ namespace Hai.LightboxViewer.Scripts.Editor
             return AllLightboxes()
                 .Where(lightbox => !lightbox.CompareTag("EditorOnly"))
                 .ToArray();
+        }
+
+        private static bool IsUsingDefaultLightingData()
+        {
+            var lightingDataAsset = Lightmapping.lightingDataAsset;
+            if (lightingDataAsset != null)
+            {
+                var assetPath = AssetDatabase.GetAssetPath(lightingDataAsset);
+                return assetPath == DefaultLightingDataAssetPath;
+            }
+
+            return false;
         }
     }
 }
