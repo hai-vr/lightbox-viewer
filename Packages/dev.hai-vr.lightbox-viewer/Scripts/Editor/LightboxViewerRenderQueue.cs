@@ -278,6 +278,9 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
         private static GameObject CreateCopy(GameObject originalAvatarGo)
         {
+            var visibilityStructure = new List<List<int>>();
+            CreateVisibilityStructure(originalAvatarGo.transform, visibilityStructure, new List<int>());
+            
             var copy = new GameObject
             {
                 name = "LightboxAvatarHolder",
@@ -307,12 +310,47 @@ namespace Hai.LightboxViewer.Scripts.Editor
             {
                 Object.DestroyImmediate(animator);
             }
-
+            
+            // The two following instructions must be in this order
             innerCopy.SetActive(true);
+            ToggleBasedOnVisibility(innerCopy.transform, visibilityStructure);
 
             copy.hideFlags = HideFlags.HideAndDontSave;
 
             return copy;
+        }
+
+        private static void CreateVisibilityStructure(Transform originalTransform, List<List<int>> output, List<int> current)
+        {
+            // SceneVisibilityManager.instance.IsHidden is not copied when a copy is instantiated, so we need to
+            // encode the children positions and reapply them to the copy.
+            
+            for (var i = 0; i < originalTransform.childCount; i++)
+            {
+                var thatChild = originalTransform.GetChild(i);
+                if (SceneVisibilityManager.instance.IsHidden(thatChild.gameObject))
+                {
+                    output.Add(current.Concat(new []{ i }).ToList());
+                }
+
+                if (thatChild.childCount > 0)
+                {
+                    CreateVisibilityStructure(thatChild, output, current.Concat(new []{ i }).ToList());
+                }
+            }
+        }
+
+        private static void ToggleBasedOnVisibility(Transform copyTransform, List<List<int>> visibilityStructure)
+        {
+            foreach (List<int> toggleOff in visibilityStructure)
+            {
+                Transform t = copyTransform;
+                foreach (var i in toggleOff)
+                {
+                    t = t.GetChild(i);
+                }
+                t.gameObject.SetActive(false);
+            }
         }
 
         private void Render(GameObject copy)
