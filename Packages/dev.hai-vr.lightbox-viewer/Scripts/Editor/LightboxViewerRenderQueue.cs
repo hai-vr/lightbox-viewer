@@ -232,6 +232,8 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
         private bool ShouldDisposeDueToChange(ObjectChangeEventStream stream)
         {
+            if (_previousOriginalObject == null) return false; // Happens in Play Mode
+            
             var originalAvatarRoot = _previousOriginalObject.transform;
             for (var i = 0; i < stream.length; i++)
             {
