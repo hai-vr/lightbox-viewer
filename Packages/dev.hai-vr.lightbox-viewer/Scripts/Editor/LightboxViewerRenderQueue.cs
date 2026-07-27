@@ -39,6 +39,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
         private Quaternion _referentialQuaternion;
         private Camera _cameraOptional;
         private bool _postProcessing;
+        private int _antiAliasing = 4;
         private float _verticalDisplacement;
         private bool _muteLightsInsideObject;
         private bool _enableDepthTexture;
@@ -56,6 +57,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
         public void Roll(float roll) => _roll = roll;
         public void Camera(Camera camera) => _cameraOptional = camera;
         public void PostProcessing(bool postProcessing) => _postProcessing = postProcessing;
+        public void AntiAliasing(int antiAliasing) => _antiAliasing = antiAliasing;
         public void Width(int actualWidth) => _width = actualWidth;
         public void Height(int actualHeight) => _height = actualHeight;
         public void CounterRotate(bool counterRotate) => _counterRotate = counterRotate;
@@ -84,7 +86,8 @@ namespace Hai.LightboxViewer.Scripts.Editor
             if (_lightboxIndexToTexture.ContainsKey(lightboxIndex)
                 && _lightboxIndexToTexture[lightboxIndex] != null // Can happen when the texture is destroyed (Unity invalid object)
                 && _lightboxIndexToTexture[lightboxIndex].width == width
-                && _lightboxIndexToTexture[lightboxIndex].height == height)
+                && _lightboxIndexToTexture[lightboxIndex].height == height
+                && ((RenderTexture)_lightboxIndexToTexture[lightboxIndex]).antiAliasing == (_antiAliasing == 0 ? 1 : _antiAliasing))
             {
                 if (!_queue.Contains(lightboxIndex))
                 {
@@ -97,7 +100,9 @@ namespace Hai.LightboxViewer.Scripts.Editor
             {
                 Object.DestroyImmediate(_lightboxIndexToTexture[lightboxIndex]);
             }
-            var texture = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32);
+            
+            var texture = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Default);
+            texture.antiAliasing = _antiAliasing == 0 ? 1 : _antiAliasing;
             _lightboxIndexToTexture[lightboxIndex] = texture; // TODO: Dimensions
 
             _queue.Enqueue(lightboxIndex);

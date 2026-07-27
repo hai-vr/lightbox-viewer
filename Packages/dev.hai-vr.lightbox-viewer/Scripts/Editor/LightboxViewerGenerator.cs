@@ -54,6 +54,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 LightboxViewerEditorWindow.PplVolumeLayerField.SetValue(ppl, new LayerMask { value = -1 });
                 LightboxViewerEditorWindow.PplVolumeTriggerField.SetValue(ppl, _camera.transform);
             }
+            _camera.allowMSAA = true;
         }
 
         public void Terminate()

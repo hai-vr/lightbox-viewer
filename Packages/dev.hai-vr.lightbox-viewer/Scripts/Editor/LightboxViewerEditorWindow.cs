@@ -39,6 +39,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
         private const string RestartPlayModeLabel = "Restart Play mode with LightboxViewer";
         private const string SaveLabel = "Save";
         private const string LightboxViewerPrefsKey = "LightboxViewer.";
+        private const string AntiAliasingLabel = "Anti-aliasing";
 
         public Transform objectToView;
         public Camera referenceCamera;
@@ -71,6 +72,11 @@ namespace Hai.LightboxViewer.Scripts.Editor
         {
             get => EditorPrefs.GetBool(PrefsKey(nameof(SupportDepthTexture)), false);
             set => EditorPrefs.SetBool(PrefsKey(nameof(SupportDepthTexture)), value);
+        }
+        public static int AntiAliasing
+        {
+            get => EditorPrefs.GetInt(PrefsKey(nameof(AntiAliasing)), 4);
+            set => EditorPrefs.SetInt(PrefsKey(nameof(AntiAliasing)), value);
         }
 
         private static string PrefsKey(string prop) => $"{LightboxViewerPrefsKey}.{prop}";
@@ -351,6 +357,14 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 PrefsToggle(nameof(PostProcessing), PostProcessing, newValue => PostProcessing = newValue);
                 PrefsToggle(nameof(MuteLightsInsideObject), MuteLightsInsideObject, newValue => MuteLightsInsideObject = newValue);
                 PrefsToggle(nameof(SupportDepthTexture), SupportDepthTexture, newValue => SupportDepthTexture = newValue);
+                EditorGUI.BeginChangeCheck();
+                var aaSlider = AntiAliasing == 8 ? 4 : AntiAliasing == 4 ? 3 : AntiAliasing;
+                EditorGUILayout.LabelField(AntiAliasingLabel, GUILayout.Width(EditorGUIUtility.labelWidth - 2));
+                var newAaSlider = Mathf.RoundToInt(GUILayout.HorizontalSlider(aaSlider, 1, 4, GUILayout.Height(EditorGUIUtility.singleLineHeight)));
+                if (EditorGUI.EndChangeCheck())
+                {
+                    AntiAliasing = newAaSlider == 4 ? 8 : newAaSlider == 3 ? 4 : newAaSlider;
+                }
                 EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(referenceCamera)));
 
                 EditorGUI.BeginDisabledGroup(!enabled);
@@ -393,6 +407,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 ProjectRenderQueue.CounterRotate(CounterRotate);
                 ProjectRenderQueue.Camera(referenceCamera);
                 ProjectRenderQueue.PostProcessing(PostProcessing);
+                ProjectRenderQueue.AntiAliasing(AntiAliasing);
                 ProjectRenderQueue.VerticalDisplacement(VerticalDisplacement);
                 ProjectRenderQueue.MuteLightsInsideObject(MuteLightsInsideObject);
                 ProjectRenderQueue.EnableDepthTexture(SupportDepthTexture, _depthEnabler);
