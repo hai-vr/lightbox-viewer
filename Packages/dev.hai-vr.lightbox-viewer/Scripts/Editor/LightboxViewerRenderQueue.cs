@@ -39,7 +39,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
         private Quaternion _referentialQuaternion;
         private Camera _cameraOptional;
         private bool _postProcessing;
-        private int _antiAliasing = 4;
+        private int _antiAliasing = 2;
         private float _verticalDisplacement;
         private bool _muteLightsInsideObject;
         private bool _enableDepthTexture;
@@ -87,7 +87,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 && _lightboxIndexToTexture[lightboxIndex] != null // Can happen when the texture is destroyed (Unity invalid object)
                 && _lightboxIndexToTexture[lightboxIndex].width == width
                 && _lightboxIndexToTexture[lightboxIndex].height == height
-                && ((RenderTexture)_lightboxIndexToTexture[lightboxIndex]).antiAliasing == (_antiAliasing == 0 ? 1 : _antiAliasing))
+                && ((RenderTexture)_lightboxIndexToTexture[lightboxIndex]).antiAliasing == _antiAliasing)
             {
                 if (!_queue.Contains(lightboxIndex))
                 {
@@ -102,7 +102,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
             }
             
             var texture = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Default);
-            texture.antiAliasing = _antiAliasing == 0 ? 1 : _antiAliasing;
+            texture.antiAliasing = _antiAliasing;
             _lightboxIndexToTexture[lightboxIndex] = texture; // TODO: Dimensions
 
             _queue.Enqueue(lightboxIndex);
@@ -464,7 +464,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
             var viewer = new LightboxViewerGenerator();
             try
             {
-                viewer.Begin(copy, _roll, _counterRotate, _cameraOptional, _postProcessing);
+                viewer.Begin(copy, _roll, _counterRotate, _cameraOptional, _postProcessing, _antiAliasing);
 
                 if (!Application.isPlaying)
                 {

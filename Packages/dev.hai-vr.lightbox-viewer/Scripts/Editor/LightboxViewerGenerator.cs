@@ -15,7 +15,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
         private Material _material;
         private bool _needsCounterRoll;
 
-        public void Begin(GameObject animatedRoot, float customRoll, bool counterRotate, Camera cameraOptional, bool usePostProcessing)
+        public void Begin(GameObject animatedRoot, float customRoll, bool counterRotate, Camera cameraOptional, bool usePostProcessing, int antiAliasing)
         {
             _animatedRoot = animatedRoot;
             var isCustomRollSlanted = customRoll != 0 && customRoll != 360 && customRoll != -360;
@@ -54,7 +54,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 LightboxViewerEditorWindow.PplVolumeLayerField.SetValue(ppl, new LayerMask { value = -1 });
                 LightboxViewerEditorWindow.PplVolumeTriggerField.SetValue(ppl, _camera.transform);
             }
-            _camera.allowMSAA = true;
+            _camera.allowMSAA = antiAliasing > 1;
         }
 
         public void Terminate()

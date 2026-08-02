@@ -73,10 +73,10 @@ namespace Hai.LightboxViewer.Scripts.Editor
             get => EditorPrefs.GetBool(PrefsKey(nameof(SupportDepthTexture)), false);
             set => EditorPrefs.SetBool(PrefsKey(nameof(SupportDepthTexture)), value);
         }
-        public static int AntiAliasing
+        public static int AntiAliasingSlider
         {
-            get => EditorPrefs.GetInt(PrefsKey(nameof(AntiAliasing)), 4);
-            set => EditorPrefs.SetInt(PrefsKey(nameof(AntiAliasing)), value);
+            get => EditorPrefs.GetInt(PrefsKey(nameof(AntiAliasingSlider)), 2); // Slider values map from 0, 1, 2, 3 to 1, 2, 4, 8 
+            set => EditorPrefs.SetInt(PrefsKey(nameof(AntiAliasingSlider)), value);
         }
 
         private static string PrefsKey(string prop) => $"{LightboxViewerPrefsKey}.{prop}";
@@ -358,12 +358,12 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 PrefsToggle(nameof(MuteLightsInsideObject), MuteLightsInsideObject, newValue => MuteLightsInsideObject = newValue);
                 PrefsToggle(nameof(SupportDepthTexture), SupportDepthTexture, newValue => SupportDepthTexture = newValue);
                 EditorGUI.BeginChangeCheck();
-                var aaSlider = AntiAliasing == 8 ? 4 : AntiAliasing == 4 ? 3 : AntiAliasing;
-                EditorGUILayout.LabelField(AntiAliasingLabel, GUILayout.Width(EditorGUIUtility.labelWidth - 2));
-                var newAaSlider = Mathf.RoundToInt(GUILayout.HorizontalSlider(aaSlider, 1, 4, GUILayout.Height(EditorGUIUtility.singleLineHeight)));
+                var aaSlider = AntiAliasingSlider;
+                EditorGUILayout.LabelField($"{AntiAliasingLabel} ({RemapAntiAliasing(aaSlider)})", GUILayout.Width(EditorGUIUtility.labelWidth - 2));
+                var newAaSlider = Mathf.RoundToInt(GUILayout.HorizontalSlider(aaSlider, 0, 3, GUILayout.Height(EditorGUIUtility.singleLineHeight)));
                 if (EditorGUI.EndChangeCheck())
                 {
-                    AntiAliasing = newAaSlider == 4 ? 8 : newAaSlider == 3 ? 4 : newAaSlider;
+                    AntiAliasingSlider = newAaSlider;
                 }
                 EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(referenceCamera)));
 
@@ -407,7 +407,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 ProjectRenderQueue.CounterRotate(CounterRotate);
                 ProjectRenderQueue.Camera(referenceCamera);
                 ProjectRenderQueue.PostProcessing(PostProcessing);
-                ProjectRenderQueue.AntiAliasing(AntiAliasing);
+                ProjectRenderQueue.AntiAliasing(RemapAntiAliasing(AntiAliasingSlider));
                 ProjectRenderQueue.VerticalDisplacement(VerticalDisplacement);
                 ProjectRenderQueue.MuteLightsInsideObject(MuteLightsInsideObject);
                 ProjectRenderQueue.EnableDepthTexture(SupportDepthTexture, _depthEnabler);
@@ -469,6 +469,17 @@ namespace Hai.LightboxViewer.Scripts.Editor
             EditorGUILayout.EndHorizontal();
             EditorGUILayout.EndScrollView();
             Profiler.EndSample();
+        }
+
+        private int RemapAntiAliasing(int i)
+        {
+            return i switch
+            {
+                1 => 2,
+                2 => 4,
+                3 => 8,
+                _ => 1
+            };
         }
 
         private static void PrefsToggle(string propName, bool value, Action<bool> setterFn, params GUILayoutOption[] options)
