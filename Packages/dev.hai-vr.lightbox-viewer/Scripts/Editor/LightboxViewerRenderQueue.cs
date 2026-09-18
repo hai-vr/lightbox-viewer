@@ -246,7 +246,11 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 if (eventType == ObjectChangeKind.ChangeGameObjectOrComponentProperties)
                 {
                     stream.GetChangeGameObjectOrComponentPropertiesEvent(i, out var data);
+#if UNITY_6000_2_OR_NEWER
+                    var instance = EditorUtility.EntityIdToObject(data.entityId);
+#else
                     var instance = EditorUtility.InstanceIDToObject(data.instanceId);
+#endif
 
                     var isPartOfAvatar = instance is GameObject go && FirstIsAnyParentOfSecond(originalAvatarRoot, go.transform)
                                          || instance is Component component && FirstIsAnyParentOfSecond(originalAvatarRoot, component.transform);
