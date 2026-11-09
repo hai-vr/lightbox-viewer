@@ -3221,17 +3221,28 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 21bc8ec8ba5e5f3408667533e591f313, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Color: {r: 1, g: 1, b: 1, a: 1}
   IsDynamic: 0
   IsAdditive: 0
-  InvBakedRotation: {x: 0, y: 0, z: 0, w: 1}
-  BoundsUvwMin0: {x: 0.027777778, y: 0.5277778, z: 0.5761905, w: 0}
-  BoundsUvwMin1: {x: 0.027777778, y: 0.027777778, z: 0.5761905, w: 0}
-  BoundsUvwMin2: {x: 0.5277778, y: 0.5277778, z: 0.4904762, w: 0}
-  BoundsUvwMax0: {x: 0.4722222, y: 0.9722222, z: 0.65238094, w: 0}
-  BoundsUvwMax1: {x: 0.4722222, y: 0.4722222, z: 0.65238094, w: 0}
-  BoundsUvwMax2: {x: 0.9722222, y: 0.9722222, z: 0.56666666, w: 0}
+  Color: {r: 1, g: 1, b: 1, a: 1}
+  Intensity: 1
+  SmoothBlending: 0.25
   InvLocalEdgeSmoothing: {x: 15.999973, y: 16, z: 16, w: 0}
+  Texture0: {fileID: 11700000, guid: 00c6f4619bb9a8d49b84cde93181ec9a, type: 2}
+  Texture1: {fileID: 11700000, guid: 37be52d0840b14f4a906602f69b2ed97, type: 2}
+  Texture2: {fileID: 11700000, guid: 84844fdc1341b384ca6693382781edbc, type: 2}
+  BakeryVolume: {fileID: 0}
+  Exposure: 0
+  Shadows: 0
+  Highlights: 0
+  Bake: 1
+  ReserveUVSpace: 0
+  AdaptiveResolution: 1
+  VoxelsPerUnit: 3
+  Resolution: {x: 12, y: 12, z: 12}
+  BoundsUvwMin0: {x: 0.071428575, y: 0.071428575, z: 0.28285715, w: 0.8571428}
+  BoundsUvwMin1: {x: 0.071428575, y: 0.071428575, z: 0.24285714, w: 0.8571428}
+  BoundsUvwMin2: {x: 0.071428575, y: 0.071428575, z: 0.20285714, w: 0.034285694}
+  InvBakedRotation: {x: 0, y: 0, z: 0, w: 1}
   InvWorldMatrix:
     e00: 0.25000042
     e01: 0
@@ -3252,6 +3263,10 @@ MonoBehaviour:
   RelativeRotationRow0: {x: 1, y: 0, z: 0}
   RelativeRotationRow1: {x: 0, y: 1, z: 0}
   IsRotated: 0
+  LightVolumeManager: {fileID: 1647364560}
+  RegistryOrder: 6
+  RegistryWeight: 0
+  IsActive: 1
 --- !u!114 &481200504
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3267,18 +3282,20 @@ MonoBehaviour:
   Dynamic: 0
   Additive: 0
   Color: {r: 1, g: 1, b: 1, a: 1}
+  Intensity: 1
   SmoothBlending: 0.25
   Texture0: {fileID: 11700000, guid: 3b82a431bd7e34b47bdc3c075b8e9e48, type: 2}
   Texture1: {fileID: 11700000, guid: 0d0e2c307e1e2a2429ad07549b004878, type: 2}
   Texture2: {fileID: 11700000, guid: 74e15e7a2fcfd754cb69c52e30a7d8b7, type: 2}
   Exposure: 0
-  DarkLights: 0
-  BrightLights: 0
+  Shadows: 0
+  Highlights: 0
   Bake: 1
+  ReserveUVSpace: 0
   AdaptiveResolution: 1
   VoxelsPerUnit: 4
   Resolution: {x: 16, y: 16, z: 16}
-  PreviewVoxels: 0
+  BakeryVolume: {fileID: 0}
   LightVolumeInstance: {fileID: 481200503}
   LightVolumeSetup: {fileID: 1647364561}
 --- !u!1 &487218671
@@ -3326,17 +3343,28 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 21bc8ec8ba5e5f3408667533e591f313, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Color: {r: 1, g: 1, b: 1, a: 1}
   IsDynamic: 0
   IsAdditive: 0
-  InvBakedRotation: {x: 0, y: 0, z: 0, w: 1}
-  BoundsUvwMin0: {x: 0.027777778, y: 0.027777778, z: 0.16666667, w: 0}
-  BoundsUvwMin1: {x: 0.027777778, y: 0.027777778, z: 0.32857144, w: 0}
-  BoundsUvwMin2: {x: 0.027777778, y: 0.027777778, z: 0.004761905, w: 0}
-  BoundsUvwMax0: {x: 0.9166667, y: 0.9166667, z: 0.31904763, w: 0}
-  BoundsUvwMax1: {x: 0.9166667, y: 0.9166667, z: 0.48095238, w: 0}
-  BoundsUvwMax2: {x: 0.9166667, y: 0.9166667, z: 0.15714286, w: 0}
+  Color: {r: 1, g: 1, b: 1, a: 1}
+  Intensity: 1
+  SmoothBlending: 0.25
   InvLocalEdgeSmoothing: {x: 16, y: 16, z: 16, w: 0}
+  Texture0: {fileID: 11700000, guid: 614de30e18d341041ba2d02970832f9a, type: 2}
+  Texture1: {fileID: 11700000, guid: 030cb939e51129249bc62e1940ac3bdd, type: 2}
+  Texture2: {fileID: 11700000, guid: 54fed261ff0341448aaf1be813f2ab86, type: 2}
+  BakeryVolume: {fileID: 0}
+  Exposure: 0
+  Shadows: 0
+  Highlights: 0
+  Bake: 1
+  ReserveUVSpace: 0
+  AdaptiveResolution: 1
+  VoxelsPerUnit: 3
+  Resolution: {x: 12, y: 12, z: 12}
+  BoundsUvwMin0: {x: 0.071428575, y: 0.071428575, z: 0.042857144, w: 0.8571428}
+  BoundsUvwMin1: {x: 0.071428575, y: 0.071428575, z: 0.44285715, w: 0.8571428}
+  BoundsUvwMin2: {x: 0.071428575, y: 0.071428575, z: 0.9628571, w: 0.034285713}
+  InvBakedRotation: {x: 0, y: 0, z: 0, w: 1}
   InvWorldMatrix:
     e00: 0.25
     e01: 0
@@ -3357,6 +3385,10 @@ MonoBehaviour:
   RelativeRotationRow0: {x: 1, y: 0, z: 0}
   RelativeRotationRow1: {x: 0, y: 1, z: 0}
   IsRotated: 0
+  LightVolumeManager: {fileID: 1647364560}
+  RegistryOrder: 8
+  RegistryWeight: 0
+  IsActive: 1
 --- !u!114 &487218674
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3372,18 +3404,20 @@ MonoBehaviour:
   Dynamic: 0
   Additive: 0
   Color: {r: 1, g: 1, b: 1, a: 1}
+  Intensity: 1
   SmoothBlending: 0.25
   Texture0: {fileID: 11700000, guid: 62437263720e0d54b9bf99e819cb28da, type: 2}
   Texture1: {fileID: 11700000, guid: 0824e9392edfb374cb32610be38780bf, type: 2}
   Texture2: {fileID: 11700000, guid: 6975501fc105a3a439392dd9385f82d3, type: 2}
   Exposure: 0
-  DarkLights: 0
-  BrightLights: 0
+  Shadows: 0
+  Highlights: 0
   Bake: 1
+  ReserveUVSpace: 0
   AdaptiveResolution: 1
   VoxelsPerUnit: 8
   Resolution: {x: 32, y: 32, z: 32}
-  PreviewVoxels: 1
+  BakeryVolume: {fileID: 0}
   LightVolumeInstance: {fileID: 487218673}
   LightVolumeSetup: {fileID: 1647364561}
 --- !u!1001 &493148205
@@ -4762,17 +4796,28 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 21bc8ec8ba5e5f3408667533e591f313, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Color: {r: 1, g: 1, b: 1, a: 1}
   IsDynamic: 0
   IsAdditive: 0
-  InvBakedRotation: {x: 0, y: 0, z: 0, w: 1}
-  BoundsUvwMin0: {x: 0.5277778, y: 0.027777778, z: 0.74761903, w: 0}
-  BoundsUvwMin1: {x: 0.027777778, y: 0.5277778, z: 0.74761903, w: 0}
-  BoundsUvwMin2: {x: 0.027777778, y: 0.027777778, z: 0.74761903, w: 0}
-  BoundsUvwMax0: {x: 0.9722222, y: 0.4722222, z: 0.8238095, w: 0}
-  BoundsUvwMax1: {x: 0.4722222, y: 0.9722222, z: 0.8238095, w: 0}
-  BoundsUvwMax2: {x: 0.4722222, y: 0.4722222, z: 0.8238095, w: 0}
+  Color: {r: 1, g: 1, b: 1, a: 1}
+  Intensity: 1
+  SmoothBlending: 0.25
   InvLocalEdgeSmoothing: {x: 16, y: 16, z: 16, w: 0}
+  Texture0: {fileID: 11700000, guid: 57e79deec95d66c49a676c64aaf596b9, type: 2}
+  Texture1: {fileID: 11700000, guid: a1cd5c82b94cb0a48bc4c0da21d65e51, type: 2}
+  Texture2: {fileID: 11700000, guid: 7ac39310423eaf54eb1f0b8d619185fb, type: 2}
+  BakeryVolume: {fileID: 0}
+  Exposure: 0
+  Shadows: 0
+  Highlights: 0
+  Bake: 1
+  ReserveUVSpace: 0
+  AdaptiveResolution: 1
+  VoxelsPerUnit: 3
+  Resolution: {x: 12, y: 12, z: 12}
+  BoundsUvwMin0: {x: 0.071428575, y: 0.071428575, z: 0.68285716, w: 0.8571428}
+  BoundsUvwMin1: {x: 0.071428575, y: 0.071428575, z: 0.64285713, w: 0.8571428}
+  BoundsUvwMin2: {x: 0.071428575, y: 0.071428575, z: 0.6028572, w: 0.034285724}
+  InvBakedRotation: {x: 0, y: 0, z: 0, w: 1}
   InvWorldMatrix:
     e00: 0.25
     e01: 0
@@ -4793,6 +4838,10 @@ MonoBehaviour:
   RelativeRotationRow0: {x: 1, y: 0, z: 0}
   RelativeRotationRow1: {x: 0, y: 1, z: 0}
   IsRotated: 0
+  LightVolumeManager: {fileID: 1647364560}
+  RegistryOrder: 2
+  RegistryWeight: 0
+  IsActive: 1
 --- !u!114 &707784906
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4808,18 +4857,20 @@ MonoBehaviour:
   Dynamic: 0
   Additive: 0
   Color: {r: 1, g: 1, b: 1, a: 1}
+  Intensity: 1
   SmoothBlending: 0.25
   Texture0: {fileID: 11700000, guid: dd6288452cbeb2647b3dd569609acf34, type: 2}
   Texture1: {fileID: 11700000, guid: b17b2479b1200cf439d48946f1dd65ca, type: 2}
   Texture2: {fileID: 11700000, guid: 189f31742a28bb7429023b8eb8291abd, type: 2}
   Exposure: 0
-  DarkLights: 0
-  BrightLights: 0
+  Shadows: 0
+  Highlights: 0
   Bake: 1
+  ReserveUVSpace: 0
   AdaptiveResolution: 1
   VoxelsPerUnit: 4
   Resolution: {x: 16, y: 16, z: 16}
-  PreviewVoxels: 0
+  BakeryVolume: {fileID: 0}
   LightVolumeInstance: {fileID: 707784905}
   LightVolumeSetup: {fileID: 1647364561}
 --- !u!1 &723023068
@@ -5162,17 +5213,28 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 21bc8ec8ba5e5f3408667533e591f313, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Color: {r: 1, g: 1, b: 1, a: 1}
   IsDynamic: 0
   IsAdditive: 0
-  InvBakedRotation: {x: 0, y: 0, z: 0, w: 1}
-  BoundsUvwMin0: {x: 0.027777778, y: 0.5277778, z: 0.66190475, w: 0}
-  BoundsUvwMin1: {x: 0.027777778, y: 0.027777778, z: 0.66190475, w: 0}
-  BoundsUvwMin2: {x: 0.5277778, y: 0.5277778, z: 0.5761905, w: 0}
-  BoundsUvwMax0: {x: 0.4722222, y: 0.9722222, z: 0.7380952, w: 0}
-  BoundsUvwMax1: {x: 0.4722222, y: 0.4722222, z: 0.7380952, w: 0}
-  BoundsUvwMax2: {x: 0.9722222, y: 0.9722222, z: 0.65238094, w: 0}
+  Color: {r: 1, g: 1, b: 1, a: 1}
+  Intensity: 1
+  SmoothBlending: 0.25
   InvLocalEdgeSmoothing: {x: 16, y: 16, z: 16, w: 0}
+  Texture0: {fileID: 11700000, guid: 7f62ac85b3f0e9c42ab1679b28173d89, type: 2}
+  Texture1: {fileID: 11700000, guid: e3009f24ace60df4d8a9300999836012, type: 2}
+  Texture2: {fileID: 11700000, guid: 70590fd4e4407c240a4270cedf1505be, type: 2}
+  BakeryVolume: {fileID: 0}
+  Exposure: 0
+  Shadows: 0
+  Highlights: 0
+  Bake: 1
+  ReserveUVSpace: 0
+  AdaptiveResolution: 1
+  VoxelsPerUnit: 3
+  Resolution: {x: 12, y: 12, z: 12}
+  BoundsUvwMin0: {x: 0.071428575, y: 0.071428575, z: 0.48285714, w: 0.8571428}
+  BoundsUvwMin1: {x: 0.071428575, y: 0.071428575, z: 0.40285715, w: 0.8571428}
+  BoundsUvwMin2: {x: 0.071428575, y: 0.071428575, z: 0.36285713, w: 0.034285694}
+  InvBakedRotation: {x: 0, y: 0, z: 0, w: 1}
   InvWorldMatrix:
     e00: 0.25
     e01: 0
@@ -5193,6 +5255,10 @@ MonoBehaviour:
   RelativeRotationRow0: {x: 1, y: 0, z: 0}
   RelativeRotationRow1: {x: 0, y: 1, z: 0}
   IsRotated: 0
+  LightVolumeManager: {fileID: 1647364560}
+  RegistryOrder: 4
+  RegistryWeight: 0
+  IsActive: 1
 --- !u!114 &775142570
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5208,18 +5274,20 @@ MonoBehaviour:
   Dynamic: 0
   Additive: 0
   Color: {r: 1, g: 1, b: 1, a: 1}
+  Intensity: 1
   SmoothBlending: 0.25
   Texture0: {fileID: 11700000, guid: 88833e06eef38d8409db225f261ad0b3, type: 2}
   Texture1: {fileID: 11700000, guid: 51cc2181eb9f23140a036eb9c8e63927, type: 2}
   Texture2: {fileID: 11700000, guid: 64f4c7155a7446c47b0700d77beb31a2, type: 2}
   Exposure: 0
-  DarkLights: 0
-  BrightLights: 0
+  Shadows: 0
+  Highlights: 0
   Bake: 1
+  ReserveUVSpace: 0
   AdaptiveResolution: 1
   VoxelsPerUnit: 4
   Resolution: {x: 16, y: 16, z: 16}
-  PreviewVoxels: 0
+  BakeryVolume: {fileID: 0}
   LightVolumeInstance: {fileID: 775142569}
   LightVolumeSetup: {fileID: 1647364561}
 --- !u!1001 &776725930
@@ -5444,17 +5512,28 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 21bc8ec8ba5e5f3408667533e591f313, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Color: {r: 1, g: 1, b: 1, a: 1}
   IsDynamic: 0
   IsAdditive: 0
-  InvBakedRotation: {x: 0, y: 0, z: 0, w: 1}
-  BoundsUvwMin0: {x: 0.027777778, y: 0.5277778, z: 0.9190476, w: 0}
-  BoundsUvwMin1: {x: 0.5277778, y: 0.5277778, z: 0.8333333, w: 0}
-  BoundsUvwMin2: {x: 0.5277778, y: 0.027777778, z: 0.8333333, w: 0}
-  BoundsUvwMax0: {x: 0.4722222, y: 0.9722222, z: 0.99523807, w: 0}
-  BoundsUvwMax1: {x: 0.9722222, y: 0.9722222, z: 0.9095238, w: 0}
-  BoundsUvwMax2: {x: 0.9722222, y: 0.4722222, z: 0.9095238, w: 0}
+  Color: {r: 1, g: 1, b: 1, a: 1}
+  Intensity: 1
+  SmoothBlending: 0.25
   InvLocalEdgeSmoothing: {x: 16, y: 16, z: 16, w: 0}
+  Texture0: {fileID: 11700000, guid: be1460e2f0dfd544d959e8583bf880b1, type: 2}
+  Texture1: {fileID: 11700000, guid: 7b3fef5c70b765e4183587dd1364c724, type: 2}
+  Texture2: {fileID: 11700000, guid: c0b0930b0abaea944b51a0890a656ef1, type: 2}
+  BakeryVolume: {fileID: 0}
+  Exposure: 0
+  Shadows: 0
+  Highlights: 0
+  Bake: 1
+  ReserveUVSpace: 0
+  AdaptiveResolution: 1
+  VoxelsPerUnit: 3
+  Resolution: {x: 12, y: 12, z: 12}
+  BoundsUvwMin0: {x: 0.071428575, y: 0.071428575, z: 0.0028571428, w: 0.8571428}
+  BoundsUvwMin1: {x: 0.071428575, y: 0.071428575, z: 0.88285714, w: 0.8571428}
+  BoundsUvwMin2: {x: 0.071428575, y: 0.071428575, z: 0.8428571, w: 0.034285717}
+  InvBakedRotation: {x: 0, y: 0, z: 0, w: 1}
   InvWorldMatrix:
     e00: 0.25
     e01: 0
@@ -5475,6 +5554,10 @@ MonoBehaviour:
   RelativeRotationRow0: {x: 1, y: 0, z: 0}
   RelativeRotationRow1: {x: 0, y: 1, z: 0}
   IsRotated: 0
+  LightVolumeManager: {fileID: 1647364560}
+  RegistryOrder: 0
+  RegistryWeight: 0
+  IsActive: 1
 --- !u!114 &801697396
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5490,18 +5573,20 @@ MonoBehaviour:
   Dynamic: 0
   Additive: 0
   Color: {r: 1, g: 1, b: 1, a: 1}
+  Intensity: 1
   SmoothBlending: 0.25
   Texture0: {fileID: 11700000, guid: b9ee9134e1ee8cb4d8a2a7f02fae73d3, type: 2}
   Texture1: {fileID: 11700000, guid: c025856a6c2f47241a4dcd77bd9e41ee, type: 2}
   Texture2: {fileID: 11700000, guid: 975cb41b579bf6d45a25492b07c0934e, type: 2}
   Exposure: 0
-  DarkLights: 0
-  BrightLights: 0
+  Shadows: 0
+  Highlights: 0
   Bake: 1
+  ReserveUVSpace: 0
   AdaptiveResolution: 1
   VoxelsPerUnit: 4
   Resolution: {x: 16, y: 16, z: 16}
-  PreviewVoxels: 0
+  BakeryVolume: {fileID: 0}
   LightVolumeInstance: {fileID: 801697395}
   LightVolumeSetup: {fileID: 1647364561}
 --- !u!1 &804488772
@@ -7886,17 +7971,28 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 21bc8ec8ba5e5f3408667533e591f313, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Color: {r: 1, g: 1, b: 1, a: 1}
   IsDynamic: 0
   IsAdditive: 0
-  InvBakedRotation: {x: 0, y: 0, z: 0, w: 1}
-  BoundsUvwMin0: {x: 0.5277778, y: 0.5277778, z: 0.66190475, w: 0}
-  BoundsUvwMin1: {x: 0.5277778, y: 0.027777778, z: 0.66190475, w: 0}
-  BoundsUvwMin2: {x: 0.027777778, y: 0.027777778, z: 0.9190476, w: 0}
-  BoundsUvwMax0: {x: 0.9722222, y: 0.9722222, z: 0.7380952, w: 0}
-  BoundsUvwMax1: {x: 0.9722222, y: 0.4722222, z: 0.7380952, w: 0}
-  BoundsUvwMax2: {x: 0.4722222, y: 0.4722222, z: 0.99523807, w: 0}
+  Color: {r: 1, g: 1, b: 1, a: 1}
+  Intensity: 1
+  SmoothBlending: 0.25
   InvLocalEdgeSmoothing: {x: 16, y: 16, z: 16, w: 0}
+  Texture0: {fileID: 11700000, guid: 5bba07769496d274f9a38dd27402b48a, type: 2}
+  Texture1: {fileID: 11700000, guid: 48a6898fa2fc3224fa872ebe2e86ad2c, type: 2}
+  Texture2: {fileID: 11700000, guid: 9edb07b5fd9715a4b9f4322137a22a08, type: 2}
+  BakeryVolume: {fileID: 0}
+  Exposure: 0
+  Shadows: 0
+  Highlights: 0
+  Bake: 1
+  ReserveUVSpace: 0
+  AdaptiveResolution: 1
+  VoxelsPerUnit: 3
+  Resolution: {x: 12, y: 12, z: 12}
+  BoundsUvwMin0: {x: 0.071428575, y: 0.071428575, z: 0.56285715, w: 0.8571428}
+  BoundsUvwMin1: {x: 0.071428575, y: 0.071428575, z: 0.5228571, w: 0.8571428}
+  BoundsUvwMin2: {x: 0.071428575, y: 0.071428575, z: 0.92285717, w: 0.034285724}
+  InvBakedRotation: {x: 0, y: 0, z: 0, w: 1}
   InvWorldMatrix:
     e00: 0.25
     e01: 0
@@ -7917,6 +8013,10 @@ MonoBehaviour:
   RelativeRotationRow0: {x: 1, y: 0, z: 0}
   RelativeRotationRow1: {x: 0, y: 1, z: 0}
   IsRotated: 0
+  LightVolumeManager: {fileID: 1647364560}
+  RegistryOrder: 3
+  RegistryWeight: 0
+  IsActive: 1
 --- !u!114 &1180727679
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7932,18 +8032,20 @@ MonoBehaviour:
   Dynamic: 0
   Additive: 0
   Color: {r: 1, g: 1, b: 1, a: 1}
+  Intensity: 1
   SmoothBlending: 0.25
   Texture0: {fileID: 11700000, guid: 6590dc51ac419a44f89c304edfe5160b, type: 2}
   Texture1: {fileID: 11700000, guid: 814718bbd773a484d9a2af1e5883f906, type: 2}
   Texture2: {fileID: 11700000, guid: d536dcac458c0304687e197620829467, type: 2}
   Exposure: 0
-  DarkLights: 0
-  BrightLights: 0
+  Shadows: 0
+  Highlights: 0
   Bake: 1
+  ReserveUVSpace: 0
   AdaptiveResolution: 1
   VoxelsPerUnit: 4
   Resolution: {x: 16, y: 16, z: 16}
-  PreviewVoxels: 0
+  BakeryVolume: {fileID: 0}
   LightVolumeInstance: {fileID: 1180727678}
   LightVolumeSetup: {fileID: 1647364561}
 --- !u!1 &1184412291
@@ -8074,17 +8176,28 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 21bc8ec8ba5e5f3408667533e591f313, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Color: {r: 1, g: 1, b: 1, a: 1}
   IsDynamic: 0
   IsAdditive: 0
-  InvBakedRotation: {x: 0, y: 0, z: 0, w: 1}
-  BoundsUvwMin0: {x: 0.5277778, y: 0.027777778, z: 0.5761905, w: 0}
-  BoundsUvwMin1: {x: 0.5277778, y: 0.027777778, z: 0.5761905, w: 0}
-  BoundsUvwMin2: {x: 0.5277778, y: 0.027777778, z: 0.5761905, w: 0}
-  BoundsUvwMax0: {x: 0.9722222, y: 0.4722222, z: 0.65238094, w: 0}
-  BoundsUvwMax1: {x: 0.9722222, y: 0.4722222, z: 0.65238094, w: 0}
-  BoundsUvwMax2: {x: 0.9722222, y: 0.4722222, z: 0.65238094, w: 0}
+  Color: {r: 1, g: 1, b: 1, a: 1}
+  Intensity: 1
+  SmoothBlending: 0.25
   InvLocalEdgeSmoothing: {x: 16, y: 16, z: 16, w: 0}
+  Texture0: {fileID: 11700000, guid: 0422424870ef9f04a8e4dfeaf738e99d, type: 2}
+  Texture1: {fileID: 11700000, guid: d0e423b098e70204a80468eb420d3f18, type: 2}
+  Texture2: {fileID: 11700000, guid: 9b5112642c9189c43927d128df457b65, type: 2}
+  BakeryVolume: {fileID: 0}
+  Exposure: 0
+  Shadows: 0
+  Highlights: 0
+  Bake: 1
+  ReserveUVSpace: 0
+  AdaptiveResolution: 1
+  VoxelsPerUnit: 3
+  Resolution: {x: 12, y: 12, z: 12}
+  BoundsUvwMin0: {x: 0.071428575, y: 0.071428575, z: 0.32285714, w: 0.8571428}
+  BoundsUvwMin1: {x: 0.071428575, y: 0.071428575, z: 0.32285714, w: 0.8571428}
+  BoundsUvwMin2: {x: 0.071428575, y: 0.071428575, z: 0.32285714, w: 0.034285724}
+  InvBakedRotation: {x: 0, y: 0, z: 0, w: 1}
   InvWorldMatrix:
     e00: 0.25
     e01: 0
@@ -8105,6 +8218,10 @@ MonoBehaviour:
   RelativeRotationRow0: {x: 1, y: 0, z: 0}
   RelativeRotationRow1: {x: 0, y: 1, z: 0}
   IsRotated: 0
+  LightVolumeManager: {fileID: 1647364560}
+  RegistryOrder: 5
+  RegistryWeight: 0
+  IsActive: 1
 --- !u!114 &1238561091
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8120,18 +8237,20 @@ MonoBehaviour:
   Dynamic: 0
   Additive: 0
   Color: {r: 1, g: 1, b: 1, a: 1}
+  Intensity: 1
   SmoothBlending: 0.25
   Texture0: {fileID: 11700000, guid: 87a3b9142dd4765488d429f2ef27b1bb, type: 2}
   Texture1: {fileID: 11700000, guid: aca3334b47ebb5140aa40789ed2d1ac9, type: 2}
   Texture2: {fileID: 11700000, guid: 843b07fd7d21202418829cbbdbfc8621, type: 2}
   Exposure: 0
-  DarkLights: 0
-  BrightLights: 0
+  Shadows: 0
+  Highlights: 0
   Bake: 1
+  ReserveUVSpace: 0
   AdaptiveResolution: 1
   VoxelsPerUnit: 4
   Resolution: {x: 16, y: 16, z: 16}
-  PreviewVoxels: 0
+  BakeryVolume: {fileID: 0}
   LightVolumeInstance: {fileID: 1238561090}
   LightVolumeSetup: {fileID: 1647364561}
 --- !u!1001 &1247580268
@@ -8407,17 +8526,28 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 21bc8ec8ba5e5f3408667533e591f313, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Color: {r: 1, g: 1, b: 1, a: 1}
   IsDynamic: 0
   IsAdditive: 0
-  InvBakedRotation: {x: 0, y: 0, z: 0, w: 1}
-  BoundsUvwMin0: {x: 0.027777778, y: 0.5277778, z: 0.8333333, w: 0}
-  BoundsUvwMin1: {x: 0.027777778, y: 0.027777778, z: 0.8333333, w: 0}
-  BoundsUvwMin2: {x: 0.5277778, y: 0.5277778, z: 0.74761903, w: 0}
-  BoundsUvwMax0: {x: 0.4722222, y: 0.9722222, z: 0.9095238, w: 0}
-  BoundsUvwMax1: {x: 0.4722222, y: 0.4722222, z: 0.9095238, w: 0}
-  BoundsUvwMax2: {x: 0.9722222, y: 0.9722222, z: 0.8238095, w: 0}
+  Color: {r: 1, g: 1, b: 1, a: 1}
+  Intensity: 1
+  SmoothBlending: 0.25
   InvLocalEdgeSmoothing: {x: 16, y: 16, z: 16, w: 0}
+  Texture0: {fileID: 11700000, guid: 37810c99ddea98a41899f997c54f68fe, type: 2}
+  Texture1: {fileID: 11700000, guid: f3afcee8f96ddb24ab077fcf22fa0412, type: 2}
+  Texture2: {fileID: 11700000, guid: 021e2fcb5db3e7546a683e7b88758a12, type: 2}
+  BakeryVolume: {fileID: 0}
+  Exposure: 0
+  Shadows: 0
+  Highlights: 0
+  Bake: 1
+  ReserveUVSpace: 0
+  AdaptiveResolution: 1
+  VoxelsPerUnit: 3
+  Resolution: {x: 12, y: 12, z: 12}
+  BoundsUvwMin0: {x: 0.071428575, y: 0.071428575, z: 0.80285716, w: 0.8571428}
+  BoundsUvwMin1: {x: 0.071428575, y: 0.071428575, z: 0.76285714, w: 0.8571428}
+  BoundsUvwMin2: {x: 0.071428575, y: 0.071428575, z: 0.7228571, w: 0.034285724}
+  InvBakedRotation: {x: 0, y: 0, z: 0, w: 1}
   InvWorldMatrix:
     e00: 0.25
     e01: 0
@@ -8438,6 +8568,10 @@ MonoBehaviour:
   RelativeRotationRow0: {x: 1, y: 0, z: 0}
   RelativeRotationRow1: {x: 0, y: 1, z: 0}
   IsRotated: 0
+  LightVolumeManager: {fileID: 1647364560}
+  RegistryOrder: 1
+  RegistryWeight: 0
+  IsActive: 1
 --- !u!114 &1320498802
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8453,18 +8587,20 @@ MonoBehaviour:
   Dynamic: 0
   Additive: 0
   Color: {r: 1, g: 1, b: 1, a: 1}
+  Intensity: 1
   SmoothBlending: 0.25
   Texture0: {fileID: 11700000, guid: a2deccedb4d47d3488cdbc64c72e8caf, type: 2}
   Texture1: {fileID: 11700000, guid: 1d28f87cd19368b43a1c0ed64aaa0c6e, type: 2}
   Texture2: {fileID: 11700000, guid: adf31c57673708f469bebde88ce58124, type: 2}
   Exposure: 0
-  DarkLights: 0
-  BrightLights: 0
+  Shadows: 0
+  Highlights: 0
   Bake: 1
+  ReserveUVSpace: 0
   AdaptiveResolution: 1
   VoxelsPerUnit: 4
   Resolution: {x: 16, y: 16, z: 16}
-  PreviewVoxels: 0
+  BakeryVolume: {fileID: 0}
   LightVolumeInstance: {fileID: 1320498801}
   LightVolumeSetup: {fileID: 1647364561}
 --- !u!1 &1337470202
@@ -9870,11 +10006,47 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a4c164fbf42cf794a8edc0fd006e1b60, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  LightVolumeAtlas: {fileID: 11700000, guid: f126c4d0b0cda6740a090069e84f761b, type: 2}
+  LightVolumeAtlasBase: {fileID: 11700000, guid: afd51bada03c7a547b66a1f1c1008953,
+    type: 2}
+  LightVolumeAtlas: {fileID: 11700000, guid: afd51bada03c7a547b66a1f1c1008953, type: 2}
+  CustomTexturesWidth: 512
+  CustomTexturesHeight: 512
+  LightsBrightnessCutoff: 0.35
+  ShadowTexturesWidth: 256
+  ShadowTexturesHeight: 256
+  ShadowTextureFormat: 1
+  ShadowBleedReduction: 0.2
+  ShadowMinVariance: 0.0001
+  Clustering: 1
+  FroxelDensity: 1
+  FroxelSlices: 100
+  FroxelCoarse: 4
+  ClusteringMinLights: 8
+  ShadowCulling: 0
   LightProbesBlending: 1
   SharpBounds: 1
   AutoUpdateVolumes: 0
+  AutoUpdateTextures: 1
   AdditiveMaxOverdraw: 4
+  ForceSceneLighting: 0
+  ShaderStripping: 1
+  AutoShaderFeatures: 1
+  ShaderFeatures: 131071
+  ShaderFeaturesSchema: 0
+  BakingMode: 0
+  VolumeBitmask: 1
+  ProbeBitmask: 1
+  Denoise: 1
+  DilateInvalidProbes: 1
+  DilationIterations: 1
+  DilationBackfaceBias: 0.1
+  FixLightProbesL1: 1
+  DownscaleVolumes: 0
+  ShadowMinVarianceDesktop: 0
+  ShadowMinVarianceMobile: 1
+  AtlasPostProcessorTargets: []
+  AtlasPostProcessorMaterials: []
+  AtlasPostProcessorTextureNames: []
   LightVolumeInstances:
   - {fileID: 801697395}
   - {fileID: 1320498801}
@@ -9885,6 +10057,24 @@ MonoBehaviour:
   - {fileID: 481200503}
   - {fileID: 1794116977}
   - {fileID: 487218673}
+  PointLightVolumeInstances: []
+  CustomTextures: {fileID: 0}
+  CubemapsCount: 0
+  ShadowTextures: {fileID: 0}
+  ShadowCubemapsCount: 0
+  ShadowMapsCount: 0
+  CubemapFaceMaterial: {fileID: 0}
+  RuntimeShadowCamera: {fileID: 0}
+  RuntimeShadowDepthEncodeMaterial: {fileID: 0}
+  RuntimeShadowBlurMaterial: {fileID: 0}
+  RuntimeShadowBlurQualityPreset: -1
+  RuntimeShadowBlurUniformKeyword: -1
+  RuntimeShadowBlurDirectKeyword: -1
+  RuntimeShadowBlurSphericalKeyword: -1
+  ClusteringMaterial: {fileID: 0}
+  ShadowCullingMaterial: {fileID: 0}
+  HasAutoCustomTextureUpdates: 0
+  HasAutoShadowTextureUpdates: 0
 --- !u!114 &1647364561
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9917,13 +10107,35 @@ MonoBehaviour:
   - 0
   - 0
   - 0
+  PointLightVolumes: []
+  CookieResolution: 512
+  BrightnessCutoff: 0.35
+  ShadowResolution: 256
+  ShadowTextureFormat: 1
+  ShadowBleedReduction: 0.2
+  ShadowMinVariance: 0
+  ShadowMinVarianceMobile: 1
+  Clustering: 1
+  FroxelDensity: 1
+  FroxelSlices: 100
+  FroxelCoarse: 4
+  ClusteringMinLights: 8
   BakingMode: 0
+  VolumeBitmask: 1
+  ProbeBitmask: 1
   Denoise: 1
+  DilateInvalidProbes: 1
+  DilationIterations: 1
+  DilationBackfaceBias: 0.1
   FixLightProbesL1: 1
+  DownscaleVolumes: 0
   LightProbesBlending: 1
   SharpBounds: 1
   AutoUpdateVolumes: 0
+  AutoUpdateTextures: 1
   AdditiveMaxOverdraw: 4
+  ForceSceneLighting: 0
+  DestroyInPlayMode: 0
   LightVolumeDataList:
   - Weight: 0
     LightVolumeInstance: {fileID: 801697395}
@@ -9943,6 +10155,7 @@ MonoBehaviour:
     LightVolumeInstance: {fileID: 1794116977}
   - Weight: 0
     LightVolumeInstance: {fileID: 487218673}
+  AtlasPostProcessors: []
   LightVolumeManager: {fileID: 1647364560}
   _bakingModePrev: 0
 --- !u!4 &1647364562
@@ -11061,17 +11274,28 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 21bc8ec8ba5e5f3408667533e591f313, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Color: {r: 1, g: 1, b: 1, a: 1}
   IsDynamic: 0
   IsAdditive: 0
-  InvBakedRotation: {x: 0, y: 0, z: 0, w: 1}
-  BoundsUvwMin0: {x: 0.5277778, y: 0.027777778, z: 0.4904762, w: 0}
-  BoundsUvwMin1: {x: 0.027777778, y: 0.5277778, z: 0.4904762, w: 0}
-  BoundsUvwMin2: {x: 0.027777778, y: 0.027777778, z: 0.4904762, w: 0}
-  BoundsUvwMax0: {x: 0.9722222, y: 0.4722222, z: 0.56666666, w: 0}
-  BoundsUvwMax1: {x: 0.4722222, y: 0.9722222, z: 0.56666666, w: 0}
-  BoundsUvwMax2: {x: 0.4722222, y: 0.4722222, z: 0.56666666, w: 0}
+  Color: {r: 1, g: 1, b: 1, a: 1}
+  Intensity: 1
+  SmoothBlending: 0.25
   InvLocalEdgeSmoothing: {x: 16, y: 16, z: 16, w: 0}
+  Texture0: {fileID: 11700000, guid: 3a11f127a425d304dae2903815fd5bbd, type: 2}
+  Texture1: {fileID: 11700000, guid: a0924ab1e0000f144b05431c324d4028, type: 2}
+  Texture2: {fileID: 11700000, guid: 22e6cacbdf459ca458e13cad4eb5b179, type: 2}
+  BakeryVolume: {fileID: 0}
+  Exposure: 0
+  Shadows: 0
+  Highlights: 0
+  Bake: 1
+  ReserveUVSpace: 0
+  AdaptiveResolution: 1
+  VoxelsPerUnit: 3
+  Resolution: {x: 12, y: 12, z: 12}
+  BoundsUvwMin0: {x: 0.071428575, y: 0.071428575, z: 0.16285715, w: 0.8571428}
+  BoundsUvwMin1: {x: 0.071428575, y: 0.071428575, z: 0.122857146, w: 0.8571428}
+  BoundsUvwMin2: {x: 0.071428575, y: 0.071428575, z: 0.08285714, w: 0.03428571}
+  InvBakedRotation: {x: 0, y: 0, z: 0, w: 1}
   InvWorldMatrix:
     e00: 0.25
     e01: 0
@@ -11092,6 +11316,10 @@ MonoBehaviour:
   RelativeRotationRow0: {x: 1, y: 0, z: 0}
   RelativeRotationRow1: {x: 0, y: 1, z: 0}
   IsRotated: 0
+  LightVolumeManager: {fileID: 1647364560}
+  RegistryOrder: 7
+  RegistryWeight: 0
+  IsActive: 1
 --- !u!114 &1794116978
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11107,18 +11335,20 @@ MonoBehaviour:
   Dynamic: 0
   Additive: 0
   Color: {r: 1, g: 1, b: 1, a: 1}
+  Intensity: 1
   SmoothBlending: 0.25
   Texture0: {fileID: 11700000, guid: 1aea84c11d3b703468c1e5b7488ee350, type: 2}
   Texture1: {fileID: 11700000, guid: 33e73ff7b0d9de943ad19e2ed2fe0ce2, type: 2}
   Texture2: {fileID: 11700000, guid: e97be0d785d7afb46aa22c26601acbf0, type: 2}
   Exposure: 0
-  DarkLights: 0
-  BrightLights: 0
+  Shadows: 0
+  Highlights: 0
   Bake: 1
+  ReserveUVSpace: 0
   AdaptiveResolution: 1
   VoxelsPerUnit: 4
   Resolution: {x: 16, y: 16, z: 16}
-  PreviewVoxels: 0
+  BakeryVolume: {fileID: 0}
   LightVolumeInstance: {fileID: 1794116977}
   LightVolumeSetup: {fileID: 1647364561}
 --- !u!1001 &1803251662
