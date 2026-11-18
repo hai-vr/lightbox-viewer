@@ -73,6 +73,14 @@ namespace Hai.LightboxViewer.Scripts.Editor
             get => EditorPrefs.GetBool(PrefsKey(nameof(SupportDepthTexture)), false);
             set => EditorPrefs.SetBool(PrefsKey(nameof(SupportDepthTexture)), value);
         }
+        /// When false (default), lightboxes are only rendered again when something may have changed.
+        /// When true, they are rendered on every editor update, which is needed for things that change without notifying the editor,
+        /// such as shaders animated over time, or changes made by scripts that do not record Undo.
+        public static bool AlwaysRefresh
+        {
+            get => EditorPrefs.GetBool(PrefsKey(nameof(AlwaysRefresh)), false);
+            set => EditorPrefs.SetBool(PrefsKey(nameof(AlwaysRefresh)), value);
+        }
         public static int AntiAliasingSlider
         {
             get => EditorPrefs.GetInt(PrefsKey(nameof(AntiAliasingSlider)), 2); // Slider values map from 0, 1, 2, 3 to 1, 2, 4, 8 
@@ -356,6 +364,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 PrefsToggle(nameof(PostProcessing), PostProcessing, newValue => PostProcessing = newValue);
                 PrefsToggle(nameof(MuteLightsInsideObject), MuteLightsInsideObject, newValue => MuteLightsInsideObject = newValue);
                 PrefsToggle(nameof(SupportDepthTexture), SupportDepthTexture, newValue => SupportDepthTexture = newValue);
+                PrefsToggle(nameof(AlwaysRefresh), AlwaysRefresh, newValue => AlwaysRefresh = newValue);
                 EditorGUI.BeginChangeCheck();
                 var aaSlider = AntiAliasingSlider;
                 EditorGUILayout.LabelField($"{AntiAliasingLabel} ({RemapAntiAliasing(aaSlider)})", GUILayout.Width(EditorGUIUtility.labelWidth - 2));
@@ -647,8 +656,12 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 _ensured = false;
             }
             
+            // In Play Mode, animations and scripts change the object all the time, so always render.
+            var needsRerender = ProjectRenderQueue.ConsumeNeedsRerender(_focusedObjectNullable);
+            var rerenderExisting = AlwaysRefresh || EditorApplication.isPlaying || needsRerender;
+
             Profiler.BeginSample("LightboxViewer.ForceRequireRenderAll");
-            ProjectRenderQueue.ForceRequireRenderAll();
+            ProjectRenderQueue.ForceRequireRenderAll(rerenderExisting);
             Profiler.EndSample();
             
             Profiler.BeginSample("LightboxViewer.Rerender");

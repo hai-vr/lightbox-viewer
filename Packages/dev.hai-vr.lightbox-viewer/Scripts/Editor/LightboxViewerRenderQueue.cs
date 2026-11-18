@@ -60,6 +60,11 @@ namespace Hai.LightboxViewer.Scripts.Editor
         private bool _reusableCameraNeedsRecreation;
         private GameObject _reusableDepthEnabler;
 
+        // When false, the lightboxes are only rendered again when something may have changed.
+        private bool _needsRerender = true;
+        private GameObject _lastRequestedRoot;
+        private SceneViewpoint _lastViewpoint;
+
         // All lights and reflection probes in the open scenes, including inactive ones. Whether they are active and enabled
         // is checked for every render, so the cache only needs refreshing when objects are created, destroyed, or loaded.
         private const double ConflictCandidatesMaxAgeSeconds = 1.0;
@@ -70,22 +75,103 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
         public LightboxViewerDefinition DefinitionNullable { get; private set; }
 
-        // Setters
+        // Setters. Settings that affect the render request a new render when their value changes.
+        // Width, height, and anti-aliasing do not need to, because a change creates new textures, which are always rendered.
         public void QueueSize(int queueSize) => _queueSize = queueSize;
-        public void Roll(float roll) => _roll = roll;
-        public void Camera(Camera camera) => _cameraOptional = camera;
-        public void PostProcessing(bool postProcessing) => _postProcessing = postProcessing;
+        public void Roll(float roll) => SetAndRequestRerender(ref _roll, roll);
+        public void Camera(Camera camera) => SetAndRequestRerender(ref _cameraOptional, camera);
+        public void PostProcessing(bool postProcessing) => SetAndRequestRerender(ref _postProcessing, postProcessing);
         public void AntiAliasing(int antiAliasing) => _antiAliasing = antiAliasing;
         public void Width(int actualWidth) => _width = actualWidth;
         public void Height(int actualHeight) => _height = actualHeight;
-        public void CounterRotate(bool counterRotate) => _counterRotate = counterRotate;
-        public void VerticalDisplacement(float verticalDisplacement) => _verticalDisplacement = verticalDisplacement;
-        public void MuteLightsInsideObject(bool muteLightsInsideObject) => _muteLightsInsideObject = muteLightsInsideObject;
-        public void Selected(string selected) => _selected = selected;
+        public void CounterRotate(bool counterRotate) => SetAndRequestRerender(ref _counterRotate, counterRotate);
+        public void VerticalDisplacement(float verticalDisplacement) => SetAndRequestRerender(ref _verticalDisplacement, verticalDisplacement);
+        public void MuteLightsInsideObject(bool muteLightsInsideObject) => SetAndRequestRerender(ref _muteLightsInsideObject, muteLightsInsideObject);
+        public void Selected(string selected) => SetAndRequestRerender(ref _selected, selected);
         public void EnableDepthTexture(bool enableDepthTexture, GameObject depthEnabler)
         {
-            _enableDepthTexture = enableDepthTexture;
-            _depthEnabler = depthEnabler;
+            SetAndRequestRerender(ref _enableDepthTexture, enableDepthTexture);
+            SetAndRequestRerender(ref _depthEnabler, depthEnabler);
+        }
+
+        private void SetAndRequestRerender<T>(ref T field, T value)
+        {
+            if (EqualityComparer<T>.Default.Equals(field, value)) return;
+
+            field = value;
+            _needsRerender = true;
+        }
+
+        public void RequestRerender() => _needsRerender = true;
+
+        /// Returns true if the lightboxes need to be rendered again because something may have changed since the last call:
+        /// a setting, an object or asset change, an undo or redo, the object to view, or the Scene view camera.
+        public bool ConsumeNeedsRerender(GameObject root)
+        {
+            if (root != _lastRequestedRoot)
+            {
+                _lastRequestedRoot = root;
+                _needsRerender = true;
+            }
+
+            var sceneCamera = LightboxViewerGenerator.FindSceneViewCameraOrNull();
+            if (sceneCamera != null)
+            {
+                var viewpoint = new SceneViewpoint(sceneCamera);
+                if (!viewpoint.IsSameAs(_lastViewpoint))
+                {
+                    _lastViewpoint = viewpoint;
+                    _needsRerender = true;
+                }
+            }
+
+            var result = _needsRerender;
+            _needsRerender = false;
+            return result;
+        }
+
+        private readonly struct SceneViewpoint
+        {
+            private readonly bool _isValid;
+            private readonly Vector3 _position;
+            private readonly Quaternion _rotation;
+            private readonly float _fieldOfView;
+            private readonly bool _orthographic;
+            private readonly float _orthographicSize;
+            private readonly float _nearClipPlane;
+            private readonly float _farClipPlane;
+            private readonly int _pixelWidth;
+            private readonly int _pixelHeight;
+
+            public SceneViewpoint(Camera camera)
+            {
+                _isValid = true;
+                var t = camera.transform;
+                _position = t.position;
+                _rotation = t.rotation;
+                _fieldOfView = camera.fieldOfView;
+                _orthographic = camera.orthographic;
+                _orthographicSize = camera.orthographicSize;
+                _nearClipPlane = camera.nearClipPlane;
+                _farClipPlane = camera.farClipPlane;
+                _pixelWidth = camera.pixelWidth;
+                _pixelHeight = camera.pixelHeight;
+            }
+
+            public bool IsSameAs(SceneViewpoint other)
+            {
+                // Exact comparisons are intended: any movement of the Scene view camera should cause a new render.
+                return _isValid && other._isValid
+                       && _position == other._position
+                       && _rotation == other._rotation
+                       && _fieldOfView == other._fieldOfView
+                       && _orthographic == other._orthographic
+                       && _orthographicSize == other._orthographicSize
+                       && _nearClipPlane == other._nearClipPlane
+                       && _farClipPlane == other._farClipPlane
+                       && _pixelWidth == other._pixelWidth
+                       && _pixelHeight == other._pixelHeight;
+            }
         }
 
         // Getters
@@ -106,6 +192,10 @@ namespace Hai.LightboxViewer.Scripts.Editor
             // the maximum age of the cache. EditorApplication.hierarchyChanged is not used, because the toggling of
             // objects during each render might raise it, which would defeat the cache.
             EditorApplication.playModeStateChanged += _ => InvalidateConflictCandidates();
+
+            // Undo and redo, and changes to assets on disk (e.g. a shader or a texture being reimported), may change the render.
+            Undo.undoRedoPerformed += RequestRerender;
+            EditorApplication.projectChanged += RequestRerender;
             EditorSceneManager.sceneOpened += (_, _) => InvalidateConflictCandidates();
             EditorSceneManager.sceneClosed += _ => InvalidateConflictCandidates();
             SceneManager.sceneLoaded += (_, _) => InvalidateConflictCandidates();
@@ -145,7 +235,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
             _conflictCandidatesRefreshTime = now;
         }
 
-        private Texture RequireRender(int lightboxIndex, int width, int height)
+        private Texture RequireRender(int lightboxIndex, int width, int height, bool rerenderExisting)
         {
             if (_lightboxIndexToTexture.ContainsKey(lightboxIndex)
                 && _lightboxIndexToTexture[lightboxIndex] != null // Can happen when the texture is destroyed (Unity invalid object)
@@ -153,7 +243,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 && _lightboxIndexToTexture[lightboxIndex].height == height
                 && ((RenderTexture)_lightboxIndexToTexture[lightboxIndex]).antiAliasing == _antiAliasing)
             {
-                if (!_queue.Contains(lightboxIndex))
+                if (rerenderExisting && !_queue.Contains(lightboxIndex))
                 {
                     _queue.Enqueue(lightboxIndex);
                 }
@@ -298,6 +388,9 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
         public void ObjectChangeEvent(ref ObjectChangeEventStream stream)
         {
+            // Any change, including to material properties, may change the render.
+            if (stream.length > 0) _needsRerender = true;
+
             var needsDispose = ShouldDisposeDueToChange(stream);
             if (needsDispose)
             {
@@ -810,7 +903,9 @@ namespace Hai.LightboxViewer.Scripts.Editor
             }
         }
 
-        public void ForceRequireRenderAll()
+        /// Ensures there is a texture of the current size for each lightbox. Lightboxes with a new texture are always queued for
+        /// rendering. Lightboxes that already have a texture are only queued when rerenderExisting is true.
+        public void ForceRequireRenderAll(bool rerenderExisting = true)
         {
             var lightboxes = AllApplicableLightboxes();
             if (_textures.Length != lightboxes.Length)
@@ -820,7 +915,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
             }
             for (var i = 0; i < lightboxes.Length; i++)
             {
-                _textures[i] = RequireRender(i, _width, _height);
+                _textures[i] = RequireRender(i, _width, _height, rerenderExisting);
                 _names[i] = lightboxes[i].name;
             }
             DestroyTexturesFromIndex(lightboxes.Length);
@@ -835,6 +930,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
         {
             _referentialVector = referentialVector;
             _referentialQuaternion = referentialQuaternion;
+            _needsRerender = true;
         }
 
         private GameObject[] AllLightboxes()
