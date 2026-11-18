@@ -59,7 +59,10 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
         public void Terminate()
         {
-            Object.DestroyImmediate(_camera.gameObject);
+            if (_camera != null) Object.DestroyImmediate(_camera.gameObject);
+            if (_material != null) Object.DestroyImmediate(_material);
+            _camera = null;
+            _material = null;
         }
 
         public void RenderNoAnimator(Texture element, GameObject currentLightbox, Vector3 referentialVector, Quaternion referentialQuaternion, float verticalDisplacement)
