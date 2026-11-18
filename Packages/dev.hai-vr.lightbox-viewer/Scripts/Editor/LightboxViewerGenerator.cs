@@ -15,7 +15,20 @@ namespace Hai.LightboxViewer.Scripts.Editor
         private Material _material;
         private bool _needsCounterRoll;
 
-        public void Begin(GameObject animatedRoot, float customRoll, bool counterRotate, Camera cameraOptional, bool usePostProcessing, int antiAliasing)
+        /// The viewpoint is taken from the last active Scene view. If there is none (e.g. the layout only has a Game view),
+        /// fall back to any open Scene view. Returns null if no Scene view is open.
+        internal static Camera FindSceneViewCameraOrNull()
+        {
+            var sceneView = SceneView.lastActiveSceneView;
+            if (sceneView == null && SceneView.sceneViews.Count > 0)
+            {
+                sceneView = SceneView.sceneViews[0] as SceneView;
+            }
+
+            return sceneView != null ? sceneView.camera : null;
+        }
+
+        public void Begin(GameObject animatedRoot, Camera sceneCamera, float customRoll, bool counterRotate, Camera cameraOptional, bool usePostProcessing, int antiAliasing)
         {
             _animatedRoot = animatedRoot;
             var isCustomRollSlanted = customRoll != 0 && customRoll != 360 && customRoll != -360;
@@ -30,7 +43,6 @@ namespace Hai.LightboxViewer.Scripts.Editor
             _camera = cameraOptional != null ? Object.Instantiate(cameraOptional) : new GameObject().AddComponent<Camera>();
             Profiler.EndSample();
 
-            var sceneCamera = SceneView.lastActiveSceneView.camera;
             _camera.transform.position = sceneCamera.transform.position;
             _camera.transform.rotation = sceneCamera.transform.rotation;
             if (isCustomRollSlanted)

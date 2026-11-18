@@ -38,6 +38,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
         private Vector3 _referentialVector;
         private Quaternion _referentialQuaternion;
         private Camera _cameraOptional;
+        private Camera _sceneCamera;
         private bool _postProcessing;
         private int _antiAliasing = 2;
         private float _verticalDisplacement;
@@ -118,6 +119,11 @@ namespace Hai.LightboxViewer.Scripts.Editor
             }
 
             if (_queue.Count == 0) return false;
+
+            // Without a Scene view, there is no viewpoint to render from. Keep the queue, so that rendering resumes
+            // once a Scene view is open.
+            _sceneCamera = LightboxViewerGenerator.FindSceneViewCameraOrNull();
+            if (_sceneCamera == null) return false;
 
             // Handle weird case of exiting Play Mode while activated
             if (!_searchedForDefinition || _foundDefinition && DefinitionNullable == null)
@@ -473,7 +479,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
             var viewer = new LightboxViewerGenerator();
             try
             {
-                viewer.Begin(copy, _roll, _counterRotate, _cameraOptional, _postProcessing, _antiAliasing);
+                viewer.Begin(copy, _sceneCamera, _roll, _counterRotate, _cameraOptional, _postProcessing, _antiAliasing);
 
                 if (!Application.isPlaying)
                 {
