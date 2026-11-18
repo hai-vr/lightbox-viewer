@@ -59,6 +59,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
         private bool _reusableCameraHasPostProcessing;
         private bool _reusableCameraNeedsRecreation;
         private GameObject _reusableDepthEnabler;
+        private Material _reusableCounterRollMaterial;
 
         // When false, the lightboxes are only rendered again when something may have changed.
         private bool _needsRerender = true;
@@ -713,7 +714,8 @@ namespace Hai.LightboxViewer.Scripts.Editor
             try
             {
                 var camera = ObtainReusableCamera();
-                viewer.Begin(copy, camera, _sceneCamera, _roll, _counterRotate, _reusableCameraIsCopyOfReference, _antiAliasing);
+                var counterRollMaterial = LightboxViewerGenerator.NeedsCounterRoll(_roll, _counterRotate) ? ObtainCounterRollMaterial() : null;
+                viewer.Begin(copy, camera, _sceneCamera, _roll, _counterRotate, counterRollMaterial, _reusableCameraIsCopyOfReference, _antiAliasing);
 
                 if (!Application.isPlaying)
                 {
@@ -775,6 +777,16 @@ namespace Hai.LightboxViewer.Scripts.Editor
             return _reusableCamera;
         }
 
+        private Material ObtainCounterRollMaterial()
+        {
+            if (_reusableCounterRollMaterial == null)
+            {
+                _reusableCounterRollMaterial = LightboxViewerGenerator.CreateCounterRollMaterial();
+            }
+
+            return _reusableCounterRollMaterial;
+        }
+
         private GameObject ObtainDepthEnablerOrNull()
         {
             if (!_enableDepthTexture || _depthEnabler == null)
@@ -812,6 +824,8 @@ namespace Hai.LightboxViewer.Scripts.Editor
         {
             DestroyReusableCamera();
             DestroyReusableDepthEnabler();
+            if (_reusableCounterRollMaterial != null) Object.DestroyImmediate(_reusableCounterRollMaterial);
+            _reusableCounterRollMaterial = null;
         }
 
         public void LoadLightbox(SceneAsset lightbox)

@@ -30,20 +30,21 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
         /// The camera is owned by the caller (LightboxViewerRenderQueue), and is reused across renders.
         /// If the camera is a copy of a reference camera, its clip planes are kept as-is.
-        public void Begin(GameObject animatedRoot, Camera camera, Camera sceneCamera, float customRoll, bool counterRotate, bool isCopyOfReferenceCamera, int antiAliasing)
+        /// The counter-roll material is also owned by the caller, and is only needed when NeedsCounterRoll returns true.
+        public void Begin(GameObject animatedRoot, Camera camera, Camera sceneCamera, float customRoll, bool counterRotate, Material counterRollMaterialOptional, bool isCopyOfReferenceCamera, int antiAliasing)
         {
             _animatedRoot = animatedRoot;
             _camera = camera;
             // The camera is disabled between renders, so that it does not render on its own. Rendering happens
             // synchronously between Begin and Terminate, with the camera enabled like a freshly created camera would be.
             _camera.enabled = true;
-            var isCustomRollSlanted = customRoll != 0 && customRoll != 360 && customRoll != -360;
-            if (isCustomRollSlanted && counterRotate)
+            var isCustomRollSlanted = IsSlanted(customRoll);
+            _needsCounterRoll = NeedsCounterRoll(customRoll, counterRotate);
+            _material = _needsCounterRoll ? counterRollMaterialOptional : null;
+            if (_material != null)
             {
-                _material = new Material(Shader.Find("Hai/LightboxViewerCounterRoll"));
                 _material.SetFloat("_CounterRoll", -customRoll / 180f);
             }
-            _needsCounterRoll = isCustomRollSlanted && counterRotate;
 
             _camera.transform.position = sceneCamera.transform.position;
             _camera.transform.rotation = sceneCamera.transform.rotation;
@@ -63,6 +64,19 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 _camera.farClipPlane = sceneCamera.farClipPlane;
             }
             _camera.allowMSAA = antiAliasing > 1;
+        }
+
+        private static bool IsSlanted(float customRoll) => customRoll != 0 && customRoll != 360 && customRoll != -360;
+
+        internal static bool NeedsCounterRoll(float customRoll, bool counterRotate) => IsSlanted(customRoll) && counterRotate;
+
+        /// Creates the counter-roll material that is reused across renders.
+        internal static Material CreateCounterRollMaterial()
+        {
+            return new Material(Shader.Find("Hai/LightboxViewerCounterRoll"))
+            {
+                hideFlags = HideFlags.HideAndDontSave
+            };
         }
 
         /// Creates the camera that is reused across renders. It is hidden, is not saved with the scene,
@@ -100,9 +114,8 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
         public void Terminate()
         {
-            // The camera is owned by the caller, and is not destroyed here.
+            // The camera and the counter-roll material are owned by the caller, and are not destroyed here.
             if (_camera != null) _camera.enabled = false;
-            if (_material != null) Object.DestroyImmediate(_material);
             _camera = null;
             _material = null;
         }
