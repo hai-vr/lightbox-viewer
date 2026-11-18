@@ -104,16 +104,6 @@ namespace Hai.LightboxViewer.Scripts.Editor
             // SceneView.duringSceneGui -= DuringSceneGui;
             // SceneView.duringSceneGui += DuringSceneGui;
             _repaint = Repaint;
-
-            PplType = AppDomain.CurrentDomain
-                .GetAssemblies()
-                .SelectMany(assembly => assembly.GetTypes())
-                .FirstOrDefault(type => type.Name == "PostProcessLayer");
-            if (PplType != null)
-            {
-                PplVolumeLayerField = PplType.GetField("volumeLayer", BindingFlags.Instance | BindingFlags.Public);
-                PplVolumeTriggerField = PplType.GetField("volumeTrigger", BindingFlags.Instance | BindingFlags.Public);
-            }
         }
 
         private void OnEnable()
@@ -629,9 +619,61 @@ namespace Hai.LightboxViewer.Scripts.Editor
         private Vector3 _referentialVector;
         private Quaternion _referentialQuaternion;
         private bool _ppInstall;
-        internal static Type PplType;
-        internal static FieldInfo PplVolumeLayerField;
-        internal static FieldInfo PplVolumeTriggerField;
+
+        // Post-processing (com.unity.postprocessing) is an optional dependency, so its PostProcessLayer is accessed through reflection.
+        // It is searched for on first access, then remembered (even if not found) until the next domain reload.
+        // Installing the package causes a domain reload, so the result cannot become outdated.
+        private const string PostProcessLayerTypeName = "UnityEngine.Rendering.PostProcessing.PostProcessLayer";
+        private const string PostProcessLayerAssemblyName = "Unity.Postprocessing.Runtime";
+        private static bool _pplSearched;
+        private static Type _pplType;
+        private static FieldInfo _pplVolumeLayerField;
+        private static FieldInfo _pplVolumeTriggerField;
+
+        /// Null if post-processing is not installed, or if its PostProcessLayer does not have the expected fields.
+        internal static Type PplType { get { EnsurePostProcessLayerSearched(); return _pplType; } }
+        internal static FieldInfo PplVolumeLayerField { get { EnsurePostProcessLayerSearched(); return _pplVolumeLayerField; } }
+        internal static FieldInfo PplVolumeTriggerField { get { EnsurePostProcessLayerSearched(); return _pplVolumeTriggerField; } }
+
+        private static void EnsurePostProcessLayerSearched()
+        {
+            if (_pplSearched) return;
+            _pplSearched = true;
+
+            Profiler.BeginSample("LightboxViewer.SearchPostProcessLayer");
+            var type = Type.GetType($"{PostProcessLayerTypeName}, {PostProcessLayerAssemblyName}", false)
+                       ?? FindTypeInLoadedAssembliesOrNull(PostProcessLayerTypeName);
+            Profiler.EndSample();
+            if (type == null) return;
+
+            var volumeLayerField = type.GetField("volumeLayer", BindingFlags.Instance | BindingFlags.Public);
+            var volumeTriggerField = type.GetField("volumeTrigger", BindingFlags.Instance | BindingFlags.Public);
+            if (volumeLayerField == null || volumeTriggerField == null) return; // Not the version we know how to set up.
+
+            _pplType = type;
+            _pplVolumeLayerField = volumeLayerField;
+            _pplVolumeTriggerField = volumeTriggerField;
+        }
+
+        private static Type FindTypeInLoadedAssembliesOrNull(string fullTypeName)
+        {
+            // Fallback in case the assembly is not named as expected. Looking up a type by its full name in each assembly
+            // does not need to load all of their types, unlike Assembly.GetTypes(), which can throw ReflectionTypeLoadException.
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                try
+                {
+                    var type = assembly.GetType(fullTypeName, false);
+                    if (type != null) return type;
+                }
+                catch (Exception)
+                {
+                    // Some assemblies (e.g. dynamic ones) may not support this. Ignore them.
+                }
+            }
+
+            return null;
+        }
         private bool _ensured;
         private float SidebarWidth = 200;
         private string selected;
