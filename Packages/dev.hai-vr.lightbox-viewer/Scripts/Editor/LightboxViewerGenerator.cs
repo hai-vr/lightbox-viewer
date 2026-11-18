@@ -28,9 +28,15 @@ namespace Hai.LightboxViewer.Scripts.Editor
             return sceneView != null ? sceneView.camera : null;
         }
 
-        public void Begin(GameObject animatedRoot, Camera sceneCamera, float customRoll, bool counterRotate, Camera cameraOptional, bool usePostProcessing, int antiAliasing)
+        /// The camera is owned by the caller (LightboxViewerRenderQueue), and is reused across renders.
+        /// If the camera is a copy of a reference camera, its clip planes are kept as-is.
+        public void Begin(GameObject animatedRoot, Camera camera, Camera sceneCamera, float customRoll, bool counterRotate, bool isCopyOfReferenceCamera, int antiAliasing)
         {
             _animatedRoot = animatedRoot;
+            _camera = camera;
+            // The camera is disabled between renders, so that it does not render on its own. Rendering happens
+            // synchronously between Begin and Terminate, with the camera enabled like a freshly created camera would be.
+            _camera.enabled = true;
             var isCustomRollSlanted = customRoll != 0 && customRoll != 360 && customRoll != -360;
             if (isCustomRollSlanted && counterRotate)
             {
@@ -38,10 +44,6 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 _material.SetFloat("_CounterRoll", -customRoll / 180f);
             }
             _needsCounterRoll = isCustomRollSlanted && counterRotate;
-
-            Profiler.BeginSample("LightboxViewer.Generator.Begin.AddCameraComponent");
-            _camera = cameraOptional != null ? Object.Instantiate(cameraOptional) : new GameObject().AddComponent<Camera>();
-            Profiler.EndSample();
 
             _camera.transform.position = sceneCamera.transform.position;
             _camera.transform.rotation = sceneCamera.transform.rotation;
@@ -55,23 +57,51 @@ namespace Hai.LightboxViewer.Scripts.Editor
             _camera.fieldOfView = whRatio < 1 ? sceneCamera.fieldOfView * whRatio : sceneCamera.fieldOfView;
             _camera.orthographic = sceneCamera.orthographic;
             _camera.orthographicSize = sceneCamera.orthographicSize;
-            if (cameraOptional == null)
+            if (!isCopyOfReferenceCamera)
             {
                 _camera.nearClipPlane = sceneCamera.nearClipPlane;
                 _camera.farClipPlane = sceneCamera.farClipPlane;
             }
+            _camera.allowMSAA = antiAliasing > 1;
+        }
+
+        /// Creates the camera that is reused across renders. It is hidden, is not saved with the scene,
+        /// and its Camera component is disabled so that it only renders when Camera.Render() is called.
+        internal static Camera CreateReusableCamera(Camera cameraOptional, bool usePostProcessing)
+        {
+            Profiler.BeginSample("LightboxViewer.Generator.CreateReusableCamera");
+            var camera = cameraOptional != null ? Object.Instantiate(cameraOptional) : new GameObject().AddComponent<Camera>();
+            var go = camera.gameObject;
+            go.name = "LightboxViewerCamera";
+            camera.enabled = false;
+
+            // A copy of a reference camera may carry an Audio Listener, which would conflict with the scene's one
+            // now that the copy outlives the render.
+            foreach (var audioListener in go.GetComponentsInChildren<AudioListener>(true))
+            {
+                audioListener.enabled = false;
+            }
+
             if (usePostProcessing && LightboxViewerEditorWindow.PplType != null)
             {
-                var ppl = _camera.gameObject.AddComponent(LightboxViewerEditorWindow.PplType);
+                var ppl = go.AddComponent(LightboxViewerEditorWindow.PplType);
                 LightboxViewerEditorWindow.PplVolumeLayerField.SetValue(ppl, new LayerMask { value = -1 });
-                LightboxViewerEditorWindow.PplVolumeTriggerField.SetValue(ppl, _camera.transform);
+                LightboxViewerEditorWindow.PplVolumeTriggerField.SetValue(ppl, camera.transform);
             }
-            _camera.allowMSAA = antiAliasing > 1;
+
+            foreach (var t in go.GetComponentsInChildren<Transform>(true))
+            {
+                t.gameObject.hideFlags = HideFlags.HideAndDontSave;
+            }
+            Profiler.EndSample();
+
+            return camera;
         }
 
         public void Terminate()
         {
-            if (_camera != null) Object.DestroyImmediate(_camera.gameObject);
+            // The camera is owned by the caller, and is not destroyed here.
+            if (_camera != null) _camera.enabled = false;
             if (_material != null) Object.DestroyImmediate(_material);
             _camera = null;
             _material = null;

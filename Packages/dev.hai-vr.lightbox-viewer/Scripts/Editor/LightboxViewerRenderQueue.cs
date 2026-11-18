@@ -51,6 +51,15 @@ namespace Hai.LightboxViewer.Scripts.Editor
         private bool _foundDefinition;
         private GameObject _previousOriginalObject;
         private GameObject _copiedObject;
+
+        // Reused across renders, instead of being created and destroyed for every render.
+        private Camera _reusableCamera;
+        private bool _reusableCameraIsCopyOfReference;
+        private Camera _reusableCameraReference;
+        private bool _reusableCameraHasPostProcessing;
+        private bool _reusableCameraNeedsRecreation;
+        private GameObject _reusableDepthEnabler;
+
         public LightboxViewerDefinition DefinitionNullable { get; private set; }
 
         // Setters
@@ -80,6 +89,10 @@ namespace Hai.LightboxViewer.Scripts.Editor
         {
             _lightboxIndexToTexture = new Dictionary<int, Texture>();
             _queue = new Queue<int>();
+
+            // The reusable objects are not saved with the scene, so they would survive a domain reload as leaked objects
+            // once this instance is lost. Destroy them before it happens.
+            AssemblyReloadEvents.beforeAssemblyReload += DestroyReusableObjects;
         }
 
         private Texture RequireRender(int lightboxIndex, int width, int height)
@@ -239,6 +252,51 @@ namespace Hai.LightboxViewer.Scripts.Editor
             {
                 DisposeOfCopiedObject();
             }
+
+            if (ShouldRecreateCameraDueToChange(stream))
+            {
+                _reusableCameraNeedsRecreation = true;
+            }
+        }
+
+        private bool ShouldRecreateCameraDueToChange(ObjectChangeEventStream stream)
+        {
+            // A camera that is not a copy of a reference camera has nothing to carry over.
+            if (_reusableCamera == null || !_reusableCameraIsCopyOfReference || _reusableCameraReference == null) return false;
+
+            var referenceRoot = _reusableCameraReference.transform;
+            for (var i = 0; i < stream.length; i++)
+            {
+                var eventType = stream.GetEventType(i);
+                if (eventType == ObjectChangeKind.ChangeGameObjectOrComponentProperties)
+                {
+                    stream.GetChangeGameObjectOrComponentPropertiesEvent(i, out var data);
+                    var instance = InstanceOf(data);
+                    var isPartOfReference = instance is GameObject go && FirstIsAnyParentOfSecond(referenceRoot, go.transform)
+                                            || instance is Component component && FirstIsAnyParentOfSecond(referenceRoot, component.transform);
+                    if (isPartOfReference) return true;
+                }
+                else if (eventType == ObjectChangeKind.ChangeAssetObjectProperties)
+                {
+                    // Assets are shared between the reference camera and its copy (e.g. post-processing profiles).
+                }
+                else
+                {
+                    // Structural changes may have added or removed components on the reference camera.
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static Object InstanceOf(ChangeGameObjectOrComponentPropertiesEventArgs data)
+        {
+#if UNITY_6000_2_OR_NEWER
+            return EditorUtility.EntityIdToObject(data.entityId);
+#else
+            return EditorUtility.InstanceIDToObject(data.instanceId);
+#endif
         }
 
         private bool ShouldDisposeDueToChange(ObjectChangeEventStream stream)
@@ -252,11 +310,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 if (eventType == ObjectChangeKind.ChangeGameObjectOrComponentProperties)
                 {
                     stream.GetChangeGameObjectOrComponentPropertiesEvent(i, out var data);
-#if UNITY_6000_2_OR_NEWER
-                    var instance = EditorUtility.EntityIdToObject(data.entityId);
-#else
-                    var instance = EditorUtility.InstanceIDToObject(data.instanceId);
-#endif
+                    var instance = InstanceOf(data);
 
                     var isPartOfAvatar = instance is GameObject go && FirstIsAnyParentOfSecond(originalAvatarRoot, go.transform)
                                          || instance is Component component && FirstIsAnyParentOfSecond(originalAvatarRoot, component.transform);
@@ -423,10 +477,12 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 }
             }
 
-            GameObject ourDepthEnabler = null;
+            // The depth enabler is a light, so it must only be active during the render. Otherwise, it would affect
+            // the scene. It was inactive when the conflicting lights were collected, so it will not be disabled with them.
+            var depthEnabler = ObtainDepthEnablerOrNull();
             try
             {
-                if (_enableDepthTexture) ourDepthEnabler = Object.Instantiate(_depthEnabler);
+                if (depthEnabler != null) depthEnabler.SetActive(true);
 
                 Profiler.BeginSample("LightboxViewer.Render.DisableConflictingObjects");
                 foreach (var it in all) it.enabled = false;
@@ -450,7 +506,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
                     lightboxes[index].gameObject.SetActive(history[index]);
                 }
                 Profiler.EndSample();
-                Object.DestroyImmediate(ourDepthEnabler);
+                if (depthEnabler != null) depthEnabler.SetActive(false);
             }
 
             if (!Application.isPlaying && WhenInEditMode_ReuseCachedCopy)
@@ -486,7 +542,8 @@ namespace Hai.LightboxViewer.Scripts.Editor
             var viewer = new LightboxViewerGenerator();
             try
             {
-                viewer.Begin(copy, _sceneCamera, _roll, _counterRotate, _cameraOptional, _postProcessing, _antiAliasing);
+                var camera = ObtainReusableCamera();
+                viewer.Begin(copy, camera, _sceneCamera, _roll, _counterRotate, _reusableCameraIsCopyOfReference, _antiAliasing);
 
                 if (!Application.isPlaying)
                 {
@@ -519,6 +576,72 @@ namespace Hai.LightboxViewer.Scripts.Editor
             }
 
             _previousViewer = viewer;
+        }
+
+        private Camera ObtainReusableCamera()
+        {
+            var wantsCopyOfReference = _cameraOptional != null;
+            var wantsPostProcessing = _postProcessing && LightboxViewerEditorWindow.PplType != null;
+
+            var needsRecreation = _reusableCamera == null
+                                  || _reusableCameraNeedsRecreation
+                                  || _reusableCameraIsCopyOfReference != wantsCopyOfReference
+                                  || _reusableCameraReference != _cameraOptional
+                                  || _reusableCameraHasPostProcessing != wantsPostProcessing
+                                  // In Play Mode, scripts may change the reference camera without publishing change events,
+                                  // so the copy is recreated for every render, like it was before.
+                                  || Application.isPlaying && wantsCopyOfReference;
+
+            if (needsRecreation)
+            {
+                DestroyReusableCamera();
+                _reusableCamera = LightboxViewerGenerator.CreateReusableCamera(_cameraOptional, wantsPostProcessing);
+                _reusableCameraIsCopyOfReference = wantsCopyOfReference;
+                _reusableCameraReference = _cameraOptional;
+                _reusableCameraHasPostProcessing = wantsPostProcessing;
+                _reusableCameraNeedsRecreation = false;
+            }
+
+            return _reusableCamera;
+        }
+
+        private GameObject ObtainDepthEnablerOrNull()
+        {
+            if (!_enableDepthTexture || _depthEnabler == null)
+            {
+                DestroyReusableDepthEnabler();
+                return null;
+            }
+
+            if (_reusableDepthEnabler == null)
+            {
+                _reusableDepthEnabler = Object.Instantiate(_depthEnabler);
+                _reusableDepthEnabler.SetActive(false);
+                foreach (var t in _reusableDepthEnabler.GetComponentsInChildren<Transform>(true))
+                {
+                    t.gameObject.hideFlags = HideFlags.HideAndDontSave;
+                }
+            }
+
+            return _reusableDepthEnabler;
+        }
+
+        private void DestroyReusableCamera()
+        {
+            if (_reusableCamera != null) Object.DestroyImmediate(_reusableCamera.gameObject);
+            _reusableCamera = null;
+        }
+
+        private void DestroyReusableDepthEnabler()
+        {
+            if (_reusableDepthEnabler != null) Object.DestroyImmediate(_reusableDepthEnabler);
+            _reusableDepthEnabler = null;
+        }
+
+        private void DestroyReusableObjects()
+        {
+            DestroyReusableCamera();
+            DestroyReusableDepthEnabler();
         }
 
         public void LoadLightbox(SceneAsset lightbox)
@@ -578,6 +701,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
             DisposeOfCopiedObject();
             DestroyAllTextures();
+            DestroyReusableObjects();
         }
 
         private void DestroyAllTextures()
