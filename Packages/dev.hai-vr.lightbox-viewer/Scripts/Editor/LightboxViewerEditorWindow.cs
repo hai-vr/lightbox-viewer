@@ -253,7 +253,6 @@ namespace Hai.LightboxViewer.Scripts.Editor
             EditorGUILayout.Slider(serializedObject.FindProperty(nameof(cameraRoll)), -1f, 1f);
             EditorGUILayout.LabelField(CounterRotateLabel, GUILayout.Width(100));
 
-            EditorGUI.BeginChangeCheck();
             PrefsToggle("", CounterRotate, newValue => CounterRotate = newValue, GUILayout.Width(EditorGUIUtility.singleLineHeight));
             EditorGUI.BeginDisabledGroup(cameraRoll == 0);
             if (ColoredBgButton(cameraRoll != 0, Color.green, () => GUILayout.Button(ResetLabel, GUILayout.Width(150))))
@@ -484,6 +483,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
         private static void PrefsToggle(string propName, bool value, Action<bool> setterFn, params GUILayoutOption[] options)
         {
+            EditorGUI.BeginChangeCheck();
             var newValue = EditorGUILayout.Toggle(new GUIContent(ObjectNames.NicifyVariableName(propName)), value, options);
             if (EditorGUI.EndChangeCheck())
             {
@@ -493,6 +493,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
         private static void PrefsSlider(string propName, float value, Action<float> setterFn, float leftValue, float rightValue)
         {
+            EditorGUI.BeginChangeCheck();
             var newValue = EditorGUILayout.Slider(new GUIContent(ObjectNames.NicifyVariableName(propName)), value, leftValue, rightValue);
             if (EditorGUI.EndChangeCheck())
             {
