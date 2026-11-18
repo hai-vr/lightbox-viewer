@@ -170,7 +170,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
             _isBuiltInRenderPipeline = GraphicsSettings.currentRenderPipeline == null;
             if (!_isBuiltInRenderPipeline)
             {
-#if LIGHTBOXVIEWER_URP_SUPPORTED
+#if LIGHTBOXVIEWER_URP_APV_SUPPORTED // lightProbeSystem only exists since URP 17 (Unity 6). Older versions only have Light Probes.
                 if (QualitySettings.renderPipeline is UniversalRenderPipelineAsset urp)
                 {
                     _isUsingLightProbes = urp.lightProbeSystem == LightProbeSystem.LegacyLightProbes;

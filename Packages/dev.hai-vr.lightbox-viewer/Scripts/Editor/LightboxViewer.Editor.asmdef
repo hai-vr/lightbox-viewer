@@ -24,6 +24,11 @@
             "name": "com.unity.render-pipelines.universal",
             "expression": "",
             "define": "LIGHTBOXVIEWER_URP_SUPPORTED"
+        },
+        {
+            "name": "com.unity.render-pipelines.universal",
+            "expression": "17.0.0",
+            "define": "LIGHTBOXVIEWER_URP_APV_SUPPORTED"
         }
     ],
     "noEngineReferences": false
