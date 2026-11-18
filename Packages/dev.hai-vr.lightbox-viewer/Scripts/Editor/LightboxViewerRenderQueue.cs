@@ -274,6 +274,13 @@ namespace Hai.LightboxViewer.Scripts.Editor
                         }
                     }
                 }
+                else if (eventType == ObjectChangeKind.ChangeAssetObjectProperties)
+                {
+                    // The copy references the same assets as the original (materials, textures, meshes...),
+                    // so changes to assets are already visible in the copy, and there is no need to dispose of it.
+                    // This is important because editing material properties publishes this event every time.
+                    continue;
+                }
                 else
                 {
                     // TODO: This also causes dispose if things happen outside of the avatar. This could be narrowed down.
