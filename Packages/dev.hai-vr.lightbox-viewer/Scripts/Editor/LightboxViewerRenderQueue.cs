@@ -60,6 +60,14 @@ namespace Hai.LightboxViewer.Scripts.Editor
         private bool _reusableCameraNeedsRecreation;
         private GameObject _reusableDepthEnabler;
 
+        // All lights and reflection probes in the open scenes, including inactive ones. Whether they are active and enabled
+        // is checked for every render, so the cache only needs refreshing when objects are created, destroyed, or loaded.
+        private const double ConflictCandidatesMaxAgeSeconds = 1.0;
+        private readonly List<Light> _lightCandidates = new List<Light>();
+        private readonly List<ReflectionProbe> _reflectionProbeCandidates = new List<ReflectionProbe>();
+        private bool _conflictCandidatesNeedRefresh = true;
+        private double _conflictCandidatesRefreshTime;
+
         public LightboxViewerDefinition DefinitionNullable { get; private set; }
 
         // Setters
@@ -93,6 +101,48 @@ namespace Hai.LightboxViewer.Scripts.Editor
             // The reusable objects are not saved with the scene, so they would survive a domain reload as leaked objects
             // once this instance is lost. Destroy them before it happens.
             AssemblyReloadEvents.beforeAssemblyReload += DestroyReusableObjects;
+
+            // Other changes are detected through object change events. Changes that publish no event at all are caught by
+            // the maximum age of the cache. EditorApplication.hierarchyChanged is not used, because the toggling of
+            // objects during each render might raise it, which would defeat the cache.
+            EditorApplication.playModeStateChanged += _ => InvalidateConflictCandidates();
+            EditorSceneManager.sceneOpened += (_, _) => InvalidateConflictCandidates();
+            EditorSceneManager.sceneClosed += _ => InvalidateConflictCandidates();
+            SceneManager.sceneLoaded += (_, _) => InvalidateConflictCandidates();
+            SceneManager.sceneUnloaded += _ => InvalidateConflictCandidates();
+        }
+
+        private void InvalidateConflictCandidates()
+        {
+            _conflictCandidatesNeedRefresh = true;
+        }
+
+        private void RefreshConflictCandidatesIfNeeded()
+        {
+            var now = EditorApplication.timeSinceStartup;
+
+            // Scripts can create lights, or add Light components to existing objects, without publishing any event.
+            if (now - _conflictCandidatesRefreshTime > ConflictCandidatesMaxAgeSeconds)
+            {
+                _conflictCandidatesNeedRefresh = true;
+            }
+
+            if (!_conflictCandidatesNeedRefresh) return;
+
+            Profiler.BeginSample("LightboxViewer.Render.RefreshConflictCandidates");
+            _lightCandidates.Clear();
+            _reflectionProbeCandidates.Clear();
+#if UNITY_6000_5_OR_NEWER
+            _lightCandidates.AddRange(Object.FindObjectsByType<Light>(FindObjectsInactive.Include));
+            _reflectionProbeCandidates.AddRange(Object.FindObjectsByType<ReflectionProbe>(FindObjectsInactive.Include));
+#else
+            _lightCandidates.AddRange(Object.FindObjectsByType<Light>(FindObjectsInactive.Include, FindObjectsSortMode.None));
+            _reflectionProbeCandidates.AddRange(Object.FindObjectsByType<ReflectionProbe>(FindObjectsInactive.Include, FindObjectsSortMode.None));
+#endif
+            Profiler.EndSample();
+
+            _conflictCandidatesNeedRefresh = false;
+            _conflictCandidatesRefreshTime = now;
         }
 
         private Texture RequireRender(int lightboxIndex, int width, int height)
@@ -186,6 +236,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
                     DisposeOfCopiedObject();
 
                     _copiedObject = CreateCopy(originalAvatarGo);
+                    InvalidateConflictCandidates(); // Lights inside the copy must be known when muting lights inside the object.
 
                     _previousOriginalObject = originalAvatarGo;
                 }
@@ -253,6 +304,11 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 DisposeOfCopiedObject();
             }
 
+            if (ShouldRefreshConflictCandidatesDueToChange(stream))
+            {
+                InvalidateConflictCandidates();
+            }
+
             if (ShouldRecreateCameraDueToChange(stream))
             {
                 _reusableCameraNeedsRecreation = true;
@@ -283,6 +339,24 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 else
                 {
                     // Structural changes may have added or removed components on the reference camera.
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool ShouldRefreshConflictCandidatesDueToChange(ObjectChangeEventStream stream)
+        {
+            for (var i = 0; i < stream.length; i++)
+            {
+                var eventType = stream.GetEventType(i);
+
+                // Property changes, including enabling or disabling lights and objects, are already taken into account
+                // when rendering. Other changes, such as adding or removing components, may change which lights exist.
+                if (eventType != ObjectChangeKind.ChangeGameObjectOrComponentProperties
+                    && eventType != ObjectChangeKind.ChangeAssetObjectProperties)
+                {
                     return true;
                 }
             }
@@ -351,6 +425,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
             Object.DestroyImmediate(_copiedObject);
             _copiedObject = null;
+            InvalidateConflictCandidates();
             _previousOriginalObject = null;
         }
 
@@ -445,19 +520,21 @@ namespace Hai.LightboxViewer.Scripts.Editor
             Profiler.EndSample();
 
             Profiler.BeginSample("LightboxViewer.Render.ResolveConflictingObjects");
+            RefreshConflictCandidatesIfNeeded();
             var all = new List<Behaviour>();
-            foreach (var that in Object.FindObjectsByType<Light>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
+            foreach (var that in _lightCandidates)
             {
-                if (that.isActiveAndEnabled
+                if (that != null // The cache may contain lights destroyed since the last refresh.
+                    && that.isActiveAndEnabled
                     && that.gameObject.scene != _openScene
                     && (_muteLightsInsideObject || !FirstIsAnyParentOfSecond(copy.transform, that.transform)))
                 {
                     all.Add(that);
                 }
             }
-            foreach (var that in Object.FindObjectsByType<ReflectionProbe>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
+            foreach (var that in _reflectionProbeCandidates)
             {
-                if (that.isActiveAndEnabled && that.gameObject.scene != _openScene) all.Add(that);
+                if (that != null && that.isActiveAndEnabled && that.gameObject.scene != _openScene) all.Add(that);
             }
             Profiler.EndSample();
 
@@ -653,6 +730,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 Lightmapping.lightingDataAsset = null;
             }
             _openScene = EditorSceneManager.OpenScene(AssetDatabase.GetAssetPath(lightbox), OpenSceneMode.Additive);
+            InvalidateConflictCandidates();
             DefinitionNullable = GetDefinitionOrNull();
             _foundDefinition = DefinitionNullable != null;
             _searchedForDefinition = true;
@@ -702,6 +780,9 @@ namespace Hai.LightboxViewer.Scripts.Editor
             DisposeOfCopiedObject();
             DestroyAllTextures();
             DestroyReusableObjects();
+            _lightCandidates.Clear();
+            _reflectionProbeCandidates.Clear();
+            InvalidateConflictCandidates();
         }
 
         private void DestroyAllTextures()
