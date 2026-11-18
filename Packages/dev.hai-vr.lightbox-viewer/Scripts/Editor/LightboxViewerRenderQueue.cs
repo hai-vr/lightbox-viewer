@@ -394,11 +394,19 @@ namespace Hai.LightboxViewer.Scripts.Editor
             }
             Profiler.EndSample();
 
+            // Only objects that we deactivate get reactivated afterwards, so that objects which were already inactive
+            // stay inactive. Null entries (e.g. a deleted object still listed in the definition) are skipped, otherwise
+            // the exception would prevent the scene lights and lightboxes from being restored.
+            var deactivatedHideInRenders = new List<GameObject>();
             if (DefinitionNullable != null)
             {
                 foreach (var hideInRender in DefinitionNullable.hideInRenders)
                 {
-                    hideInRender.SetActive(false);
+                    if (hideInRender != null && hideInRender.activeSelf)
+                    {
+                        hideInRender.SetActive(false);
+                        deactivatedHideInRenders.Add(hideInRender);
+                    }
                 }
             }
 
@@ -418,12 +426,9 @@ namespace Hai.LightboxViewer.Scripts.Editor
             finally
             {
                 Profiler.BeginSample("LightboxViewer.Render.RestoreConflictingObjects");
-                if (DefinitionNullable != null)
+                foreach (var hideInRender in deactivatedHideInRenders)
                 {
-                    foreach (var hideInRender in DefinitionNullable.hideInRenders)
-                    {
-                        hideInRender.SetActive(true);
-                    }
+                    if (hideInRender != null) hideInRender.SetActive(true);
                 }
                 foreach (var it in all) it.enabled = true;
                 var lightboxes = AllLightboxes();
