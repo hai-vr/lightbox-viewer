@@ -570,6 +570,32 @@ namespace Hai.LightboxViewer.Scripts.Editor
             }
 
             DisposeOfCopiedObject();
+            DestroyAllTextures();
+        }
+
+        private void DestroyAllTextures()
+        {
+            foreach (var texture in _lightboxIndexToTexture.Values)
+            {
+                if (texture != null) Object.DestroyImmediate(texture);
+            }
+            _lightboxIndexToTexture.Clear();
+            _queue.Clear();
+            _textures = new Texture[0];
+            _names = new string[0];
+        }
+
+        private void DestroyTexturesFromIndex(int count)
+        {
+            // Keys are always contiguous from 0, so this only happens when switching to a group with fewer lightboxes.
+            if (_lightboxIndexToTexture.Count <= count) return;
+
+            foreach (var index in _lightboxIndexToTexture.Keys.Where(index => index >= count).ToList())
+            {
+                var texture = _lightboxIndexToTexture[index];
+                if (texture != null) Object.DestroyImmediate(texture);
+                _lightboxIndexToTexture.Remove(index);
+            }
         }
 
         public void ForceRequireRenderAll()
@@ -585,6 +611,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 _textures[i] = RequireRender(i, _width, _height);
                 _names[i] = lightboxes[i].name;
             }
+            DestroyTexturesFromIndex(lightboxes.Length);
         }
 
         public void SaveLightbox()
