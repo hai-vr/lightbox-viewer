@@ -39,6 +39,26 @@ namespace Hai.LightboxViewer.Scripts.Editor
         private const string RestartPlayModeLabel = "Restart Play mode with LightboxViewer";
         private const string SaveLabel = "Save";
         private const string LightboxViewerPrefsKey = "LightboxViewer.";
+        private const string NdmfPreviewLabel = "NDMF Preview";
+        private const string NdmfPreviewTooltip = "Render the result of NDMF Preview instead of the original object. Renderers whose bones are changed by the preview are rendered as they are in the scene.\n\n" +
+                                                  "Disabled: render the original object.\n" +
+                                                  "Slow updates: only render the complete result that NDMF Preview shows, and do not render while NDMF Preview computes a new result.\n" +
+                                                  "Aggressive updates: render the result as soon as it changes, which may show the object without the result for a few frames (e.g. while editing a material).";
+        private static readonly System.Collections.Generic.List<LightboxViewerNdmfPreviewMode> NdmfPreviewModes = new System.Collections.Generic.List<LightboxViewerNdmfPreviewMode>
+        {
+            LightboxViewerNdmfPreviewMode.Disabled,
+            LightboxViewerNdmfPreviewMode.SlowUpdates,
+            LightboxViewerNdmfPreviewMode.AggressiveUpdates,
+        };
+        private static string NdmfPreviewModeName(LightboxViewerNdmfPreviewMode mode)
+        {
+            switch (mode)
+            {
+                case LightboxViewerNdmfPreviewMode.Disabled: return "Disabled";
+                case LightboxViewerNdmfPreviewMode.SlowUpdates: return "Slow updates";
+                default: return "Aggressive updates";
+            }
+        }
         private const string AntiAliasingLabel = "Anti-aliasing";
 
         public Transform objectToView;
@@ -80,6 +100,16 @@ namespace Hai.LightboxViewer.Scripts.Editor
         {
             get => EditorPrefs.GetBool(PrefsKey(nameof(AlwaysRefresh)), false);
             set => EditorPrefs.SetBool(PrefsKey(nameof(AlwaysRefresh)), value);
+        }
+        /// When not Disabled, and NDMF is installed and NDMF Preview is enabled, the result of NDMF Preview is rendered. Aggressive updates by default.
+        internal static LightboxViewerNdmfPreviewMode NdmfPreviewMode
+        {
+            get
+            {
+                var value = (LightboxViewerNdmfPreviewMode)EditorPrefs.GetInt(PrefsKey(nameof(NdmfPreviewMode)), (int)LightboxViewerNdmfPreviewMode.AggressiveUpdates);
+                return NdmfPreviewModes.Contains(value) ? value : LightboxViewerNdmfPreviewMode.AggressiveUpdates;
+            }
+            set => EditorPrefs.SetInt(PrefsKey(nameof(NdmfPreviewMode)), (int)value);
         }
         public static int AntiAliasingSlider
         {
@@ -354,6 +384,17 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 PrefsToggle(nameof(PostProcessing), PostProcessing, newValue => PostProcessing = newValue);
                 PrefsToggle(nameof(MuteLightsInsideObject), MuteLightsInsideObject, newValue => MuteLightsInsideObject = newValue);
                 PrefsToggle(nameof(SupportDepthTexture), SupportDepthTexture, newValue => SupportDepthTexture = newValue);
+                if (LightboxViewerNdmfPreview.IsAvailable)
+                {
+                    EditorGUILayout.LabelField(new GUIContent(NdmfPreviewLabel, NdmfPreviewTooltip));
+                    var currentIndex = NdmfPreviewModes.IndexOf(NdmfPreviewMode);
+                    EditorGUI.BeginChangeCheck();
+                    var newIndex = EditorGUILayout.Popup(currentIndex, NdmfPreviewModes.Select(NdmfPreviewModeName).ToArray());
+                    if (EditorGUI.EndChangeCheck())
+                    {
+                        NdmfPreviewMode = NdmfPreviewModes[newIndex];
+                    }
+                }
                 PrefsToggle(nameof(AlwaysRefresh), AlwaysRefresh, newValue => AlwaysRefresh = newValue);
                 EditorGUI.BeginChangeCheck();
                 var aaSlider = AntiAliasingSlider;
@@ -409,6 +450,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 ProjectRenderQueue.VerticalDisplacement(VerticalDisplacement);
                 ProjectRenderQueue.MuteLightsInsideObject(MuteLightsInsideObject);
                 ProjectRenderQueue.EnableDepthTexture(SupportDepthTexture, _depthEnabler);
+                ProjectRenderQueue.NdmfPreviewMode(NdmfPreviewMode);
                 ProjectRenderQueue.Selected(selected);
             }
             
@@ -698,6 +740,9 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 _ensured = false;
             }
             
+            // While NDMF Preview computes a new result, nothing is rendered, so that the lightboxes do not show the object without it.
+            if (ProjectRenderQueue.ShouldWaitForNdmfPreview()) return;
+
             // In Play Mode, animations and scripts change the object all the time, so always render.
             var needsRerender = ProjectRenderQueue.ConsumeNeedsRerender(_focusedObjectNullable);
             var rerenderExisting = AlwaysRefresh || EditorApplication.isPlaying || needsRerender;

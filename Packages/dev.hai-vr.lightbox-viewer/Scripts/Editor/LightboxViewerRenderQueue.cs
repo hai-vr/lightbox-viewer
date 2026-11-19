@@ -52,6 +52,8 @@ namespace Hai.LightboxViewer.Scripts.Editor
         private GameObject _previousOriginalObject;
         private GameObject _copiedObject;
         private readonly Dictionary<Renderer, Renderer> _copiedRenderers = new Dictionary<Renderer, Renderer>();
+        private readonly Dictionary<Transform, Transform> _copiedTransforms = new Dictionary<Transform, Transform>();
+        private bool _sceneVisibilityChanged;
 
         // Reused across renders, instead of being created and destroyed for every render.
         private Camera _reusableCamera;
@@ -65,6 +67,14 @@ namespace Hai.LightboxViewer.Scripts.Editor
         // When false, the lightboxes are only rendered again when something may have changed.
         private bool _needsRerender = true;
         private GameObject _lastRequestedRoot;
+
+        // NDMF Preview: the copy of the object holds the preview result, so it is created again when the result changes.
+        private LightboxViewerNdmfPreviewMode _ndmfPreviewMode = LightboxViewerNdmfPreviewMode.AggressiveUpdates;
+        private bool _copyHasNdmfPreview;
+        private int _ndmfPreviewSignature;
+        private int _copiedNdmfPreviewSignature;
+        private bool UsesNdmfPreview => _ndmfPreviewMode != LightboxViewerNdmfPreviewMode.Disabled && LightboxViewerNdmfPreview.IsAvailable;
+        private bool NdmfPreviewActiveResultOnly => _ndmfPreviewMode == LightboxViewerNdmfPreviewMode.SlowUpdates;
         private SceneViewpoint _lastViewpoint;
 
         // All lights and reflection probes in the open scenes, including inactive ones. Whether they are active and enabled
@@ -89,6 +99,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
         public void CounterRotate(bool counterRotate) => SetAndRequestRerender(ref _counterRotate, counterRotate);
         public void VerticalDisplacement(float verticalDisplacement) => SetAndRequestRerender(ref _verticalDisplacement, verticalDisplacement);
         public void MuteLightsInsideObject(bool muteLightsInsideObject) => SetAndRequestRerender(ref _muteLightsInsideObject, muteLightsInsideObject);
+        internal void NdmfPreviewMode(LightboxViewerNdmfPreviewMode mode) => SetAndRequestRerender(ref _ndmfPreviewMode, mode);
         public void Selected(string selected) => SetAndRequestRerender(ref _selected, selected);
         public void EnableDepthTexture(bool enableDepthTexture, GameObject depthEnabler)
         {
@@ -108,12 +119,65 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
         /// Returns true if the lightboxes need to be rendered again because something may have changed since the last call:
         /// a setting, an object or asset change, an undo or redo, the object to view, or the Scene view camera.
+        // NDMF Preview takes a few frames to compute a new result. Waiting longer than this renders anyway, with the last complete result.
+        private const double NdmfPreviewMaxWaitSeconds = 2.0;
+        private const double NdmfPreviewSceneViewRepaintIntervalSeconds = 0.1;
+        private double _ndmfPreviewWaitStart = -1;
+        private double _ndmfPreviewLastSceneViewRepaint;
+
+        // Set once NDMF Preview has had a complete result since the lightboxes were activated. Until then, we wait for it (the copy has nothing to show yet).
+        private bool _ndmfPreviewHadCompleteResult;
+
+        /// True when the lightboxes should not be rendered yet because NDMF Preview has no result to show. This only applies right after the lightboxes
+        /// are activated. Afterwards, a change (e.g. editing a material) is rendered immediately with the result that NDMF Preview currently shows,
+        /// and rendered again when NDMF Preview has computed the new result (the proxies change, which changes the signature).
+        public bool ShouldWaitForNdmfPreview()
+        {
+            if (Application.isPlaying || !UsesNdmfPreview || _ndmfPreviewMode != LightboxViewerNdmfPreviewMode.SlowUpdates || !LightboxViewerNdmfPreview.IsProcessing)
+            {
+                if (UsesNdmfPreview && LightboxViewerNdmfPreview.HasActiveResult) _ndmfPreviewHadCompleteResult = true;
+                _ndmfPreviewWaitStart = -1;
+                return false;
+            }
+
+            var now = EditorApplication.timeSinceStartup;
+            var keepsShowingCurrentResult = _ndmfPreviewHadCompleteResult && LightboxViewerNdmfPreview.HasActiveResult;
+            if (!keepsShowingCurrentResult)
+            {
+                if (_ndmfPreviewWaitStart < 0) _ndmfPreviewWaitStart = now;
+                if (now - _ndmfPreviewWaitStart > NdmfPreviewMaxWaitSeconds) return false;
+            }
+            else
+            {
+                _ndmfPreviewWaitStart = -1;
+            }
+
+            // NDMF Preview only progresses when the Scene view renders, which may not happen on its own (e.g. while the mouse is over another window).
+            // This is also needed when we do not wait, so that the new result is computed and then rendered.
+            if (now - _ndmfPreviewLastSceneViewRepaint > NdmfPreviewSceneViewRepaintIntervalSeconds)
+            {
+                _ndmfPreviewLastSceneViewRepaint = now;
+                SceneView.RepaintAll();
+            }
+            return !keepsShowingCurrentResult;
+        }
+
         public bool ConsumeNeedsRerender(GameObject root)
         {
             if (root != _lastRequestedRoot)
             {
                 _lastRequestedRoot = root;
                 _needsRerender = true;
+            }
+
+            if (!Application.isPlaying)
+            {
+                var signature = UsesNdmfPreview ? LightboxViewerNdmfPreview.ComputeSignature(root, NdmfPreviewActiveResultOnly) : 0;
+                if (signature != _ndmfPreviewSignature)
+                {
+                    _ndmfPreviewSignature = signature;
+                    _needsRerender = true;
+                }
             }
 
             var sceneCamera = LightboxViewerGenerator.FindSceneViewCameraOrNull();
@@ -198,10 +262,18 @@ namespace Hai.LightboxViewer.Scripts.Editor
             // Undo and redo, and changes to assets on disk (e.g. a shader or a texture being reimported), may change the render.
             Undo.undoRedoPerformed += RequestRerender;
             EditorApplication.projectChanged += RequestRerender;
+            // Hiding or showing objects in the Scene view (eye icon of the Hierarchy) publishes no object change event.
+            SceneVisibilityManager.visibilityChanged += OnSceneVisibilityChanged;
             EditorSceneManager.sceneOpened += (_, _) => InvalidateConflictCandidates();
             EditorSceneManager.sceneClosed += _ => InvalidateConflictCandidates();
             SceneManager.sceneLoaded += (_, _) => InvalidateConflictCandidates();
             SceneManager.sceneUnloaded += _ => InvalidateConflictCandidates();
+        }
+
+        private void OnSceneVisibilityChanged()
+        {
+            _sceneVisibilityChanged = true;
+            RequestRerender();
         }
 
         private void InvalidateConflictCandidates()
@@ -323,14 +395,49 @@ namespace Hai.LightboxViewer.Scripts.Editor
         {
             if (WhenInEditMode_ReuseCachedCopy)
             {
-                if (_copiedObject == null || _previousOriginalObject != originalAvatarGo)
+                var usesNdmfPreview = UsesNdmfPreview;
+                var ndmfPreviewChanged = _copiedObject != null
+                                         && (_copyHasNdmfPreview != usesNdmfPreview
+                                             || usesNdmfPreview && _copiedNdmfPreviewSignature != _ndmfPreviewSignature);
+                if (ndmfPreviewChanged && _previousOriginalObject == originalAvatarGo)
+                {
+                    // Only the preview result changed: update the existing copy instead of creating it again. NDMF Preview can produce
+                    // a new result on several frames in a row (e.g. while its filters complete), and recreating the copy of an object
+                    // with thousands of transforms on each of them took most of a second each time.
+                    Profiler.BeginSample("LightboxViewer.TryRender.ReapplyNdmfPreview");
+                    LightboxViewerNdmfPreview.RestoreFromOriginals(_copiedRenderers);
+                    if (usesNdmfPreview)
+                    {
+                        LightboxViewerNdmfPreview.Apply(originalAvatarGo, _copiedRenderers, NdmfPreviewActiveResultOnly);
+                    }
+                    _copyHasNdmfPreview = usesNdmfPreview;
+                    _copiedNdmfPreviewSignature = _ndmfPreviewSignature;
+                    _sceneVisibilityChanged = true; // The Scene view visibility has priority over the preview result.
+                    Profiler.EndSample();
+                }
+                else if (_copiedObject == null || _previousOriginalObject != originalAvatarGo || ndmfPreviewChanged)
                 {
                     DisposeOfCopiedObject();
 
                     _copiedObject = CreateCopy(originalAvatarGo);
+                    if (usesNdmfPreview)
+                    {
+                        LightboxViewerNdmfPreview.Apply(originalAvatarGo, _copiedRenderers, NdmfPreviewActiveResultOnly);
+                    }
+                    _copyHasNdmfPreview = usesNdmfPreview;
+                    _copiedNdmfPreviewSignature = _ndmfPreviewSignature;
                     InvalidateConflictCandidates(); // Lights inside the copy must be known when muting lights inside the object.
 
                     _previousOriginalObject = originalAvatarGo;
+                    _sceneVisibilityChanged = true; // The Scene view visibility has priority over the preview result.
+                }
+
+                // Objects hidden in the Scene view are never rendered, whatever the NDMF Preview result is. This is applied last, after
+                // the preview result, and again whenever the Scene view visibility changes.
+                if (_sceneVisibilityChanged && _copiedObject != null)
+                {
+                    LightboxViewerCopyBuilder.ApplySceneVisibility(_copiedTransforms, originalAvatarGo.transform);
+                    _sceneVisibilityChanged = false;
                 }
             }
 
@@ -521,6 +628,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
             Object.DestroyImmediate(_copiedObject);
             _copiedObject = null;
             _copiedRenderers.Clear();
+            _copiedTransforms.Clear();
             InvalidateConflictCandidates();
             _previousOriginalObject = null;
         }
@@ -528,7 +636,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
         /// Creates the copy of the object that is rendered in Edit Mode. See LightboxViewerCopyBuilder.
         private GameObject CreateCopy(GameObject originalAvatarGo)
         {
-            return LightboxViewerCopyBuilder.Build(originalAvatarGo, _copiedRenderers);
+            return LightboxViewerCopyBuilder.Build(originalAvatarGo, _copiedRenderers, _copiedTransforms);
         }
 
         private void Render(GameObject copy)
@@ -741,7 +849,12 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
         private void DestroyReusableCamera()
         {
-            if (_reusableCamera != null) Object.DestroyImmediate(_reusableCamera.gameObject);
+            if (_reusableCamera != null)
+            {
+                // The camera is parented to a holder, see LightboxViewerGenerator.CreateReusableCamera.
+                var parent = _reusableCamera.transform.parent;
+                Object.DestroyImmediate(parent != null ? parent.gameObject : _reusableCamera.gameObject);
+            }
             _reusableCamera = null;
         }
 
@@ -761,13 +874,17 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
         public void LoadLightbox(SceneAsset lightbox)
         {
+            _ndmfPreviewHadCompleteResult = false;
             _wasUsingDefaultLightingData = IsUsingDefaultLightingData();
             if (_wasUsingDefaultLightingData)
             {
                 _previousLightingData = Lightmapping.lightingDataAsset;
                 Lightmapping.lightingDataAsset = null;
             }
-            _openScene = EditorSceneManager.OpenScene(AssetDatabase.GetAssetPath(lightbox), OpenSceneMode.Additive);
+            using (LightboxViewerNdmfPreview.SuppressSceneInvalidation())
+            {
+                _openScene = EditorSceneManager.OpenScene(AssetDatabase.GetAssetPath(lightbox), OpenSceneMode.Additive);
+            }
             InvalidateConflictCandidates();
             DefinitionNullable = GetDefinitionOrNull();
             _foundDefinition = DefinitionNullable != null;
@@ -809,7 +926,10 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 {
                     Lightmapping.lightingDataAsset = _previousLightingData;
                 }
-                EditorSceneManager.CloseScene(_openScene, true);
+                using (LightboxViewerNdmfPreview.SuppressSceneInvalidation())
+                {
+                    EditorSceneManager.CloseScene(_openScene, true);
+                }
                 LightProbes.Tetrahedralize();
                 _sceneLoaded = false;
                 _openScene = default;

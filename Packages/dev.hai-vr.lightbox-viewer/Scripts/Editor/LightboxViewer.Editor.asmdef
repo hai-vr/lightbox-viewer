@@ -3,7 +3,8 @@
     "rootNamespace": "",
     "references": [
         "LightboxViewer.Runtime",
-        "Unity.RenderPipelines.Universal.Runtime"
+        "Unity.RenderPipelines.Universal.Runtime",
+        "nadena.dev.ndmf"
     ],
     "includePlatforms": [
         "Editor"
@@ -29,6 +30,11 @@
             "name": "com.unity.render-pipelines.universal",
             "expression": "17.0.0",
             "define": "LIGHTBOXVIEWER_URP_APV_SUPPORTED"
+        },
+        {
+            "name": "nadena.dev.ndmf",
+            "expression": "",
+            "define": "LIGHTBOXVIEWER_NDMF_SUPPORTED"
         }
     ],
     "noEngineReferences": false

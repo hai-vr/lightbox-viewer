@@ -18,21 +18,44 @@ namespace Hai.LightboxViewer.Scripts.Editor
         private const HideFlags CopyHideFlags = HideFlags.HideAndDontSave;
 
         private readonly Transform _originalRoot;
-        private readonly Dictionary<Transform, Transform> _mirrors = new Dictionary<Transform, Transform>();
+        private readonly Dictionary<Transform, Transform> _mirrors;
         private readonly Dictionary<Renderer, Renderer> _copiedRenderers;
 
-        private LightboxViewerCopyBuilder(Transform originalRoot, Dictionary<Renderer, Renderer> copiedRenderers)
+        private LightboxViewerCopyBuilder(Transform originalRoot, Dictionary<Renderer, Renderer> copiedRenderers, Dictionary<Transform, Transform> copiedTransforms)
         {
             _originalRoot = originalRoot;
             _copiedRenderers = copiedRenderers;
+            _mirrors = copiedTransforms ?? new Dictionary<Transform, Transform>();
         }
 
         /// Returns the inactive holder of the copy. If copiedRenderers is not null, it receives the renderer of the copy for each original renderer.
-        internal static GameObject Build(GameObject originalAvatarGo, Dictionary<Renderer, Renderer> copiedRenderers)
+        /// If copiedTransforms is not null, it receives the transform of the copy for each original transform that was copied, including the root.
+        internal static GameObject Build(GameObject originalAvatarGo, Dictionary<Renderer, Renderer> copiedRenderers, Dictionary<Transform, Transform> copiedTransforms)
         {
             copiedRenderers?.Clear();
-            return new LightboxViewerCopyBuilder(originalAvatarGo.transform, copiedRenderers).Build();
+            copiedTransforms?.Clear();
+            return new LightboxViewerCopyBuilder(originalAvatarGo.transform, copiedRenderers, copiedTransforms).Build();
         }
+
+        /// Makes the objects of the copy active or inactive like the original objects, where an object hidden in the Scene view (eye icon of the
+        /// Hierarchy) is inactive. The root of the copy is always active, even if the original is not.
+        /// This must be applied after anything that changes the renderers of the copy (such as the NDMF Preview result): an object hidden in
+        /// the Scene view is never rendered, even if its renderer was changed.
+        internal static void ApplySceneVisibility(IReadOnlyDictionary<Transform, Transform> copiedTransforms, Transform originalRoot)
+        {
+            foreach (var pair in copiedTransforms)
+            {
+                var original = pair.Key;
+                var copy = pair.Value;
+                if (original == null || copy == null || original == originalRoot) continue;
+
+                var active = IsActiveAndVisible(original.gameObject);
+                if (copy.gameObject.activeSelf != active) copy.gameObject.SetActive(active);
+            }
+        }
+
+        // The visibility of the Scene view (eye icon) is not part of the object, so it has to be carried over.
+        private static bool IsActiveAndVisible(GameObject original) => original.activeSelf && !SceneVisibilityManager.instance.IsHidden(original);
 
         private GameObject Build()
         {
@@ -169,8 +192,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
             mirror.localRotation = original.localRotation;
             mirror.localScale = original.localScale;
 
-            // The visibility of the Scene view (eye icon) is not part of the object, so it has to be carried over.
-            go.SetActive(original.gameObject.activeSelf && !SceneVisibilityManager.instance.IsHidden(original.gameObject));
+            go.SetActive(IsActiveAndVisible(original.gameObject));
 
             _mirrors[original] = mirror;
             return mirror;

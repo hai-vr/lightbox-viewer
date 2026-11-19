@@ -81,6 +81,8 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
         /// Creates the camera that is reused across renders. It is hidden, is not saved with the scene,
         /// and its Camera component is disabled so that it only renders when Camera.Render() is called.
+        internal const string CameraHolderName = "LightboxViewerCameraHolder";
+
         internal static Camera CreateReusableCamera(Camera cameraOptional, bool usePostProcessing)
         {
             Profiler.BeginSample("LightboxViewer.Generator.CreateReusableCamera");
@@ -102,6 +104,11 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 LightboxViewerEditorWindow.PplVolumeLayerField.SetValue(ppl, new LayerMask { value = -1 });
                 LightboxViewerEditorWindow.PplVolumeTriggerField.SetValue(ppl, camera.transform);
             }
+
+            // NDMF Preview swaps its proxies in for every camera that has no parent or no target texture. The copy that we render
+            // already carries the preview result, so our camera is given a parent (it always renders into a target texture).
+            var holder = new GameObject(CameraHolderName) { hideFlags = HideFlags.HideAndDontSave };
+            camera.transform.SetParent(holder.transform, true);
 
             foreach (var t in go.GetComponentsInChildren<Transform>(true))
             {
