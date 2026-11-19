@@ -11,6 +11,32 @@ namespace Hai.LightboxViewer.Scripts.Editor
     /// and the transforms that they need: the transform of each renderer and light, the bones, the root bone and the anchor override
     /// (any transform referenced by a copied component is found by looking at its serialized references), along with their parents.
     /// Nothing else is copied, so no script, animator, constraint or other component of the object runs in the copy.
+    /// The equivalent object of the copy for each original object that was copied.
+    internal class LightboxViewerCopyMaps
+    {
+        /// The renderer of the copy for each original renderer.
+        public readonly Dictionary<Renderer, Renderer> Renderers = new Dictionary<Renderer, Renderer>();
+        /// The transform of the copy for each original transform that was copied, including the root.
+        public readonly Dictionary<Transform, Transform> Transforms = new Dictionary<Transform, Transform>();
+        /// The component of the copy for each original component that was copied (renderers, mesh filters, lights, Light Probe Proxy Volumes).
+        public readonly Dictionary<Component, Component> Components = new Dictionary<Component, Component>();
+
+        public void Clear()
+        {
+            Renderers.Clear();
+            Transforms.Clear();
+            Components.Clear();
+        }
+
+        /// True if an original object that was copied has been destroyed since.
+        public bool AnyOriginalDestroyed()
+        {
+            foreach (var original in Transforms.Keys) if (original == null) return true;
+            foreach (var original in Components.Keys) if (original == null) return true;
+            return false;
+        }
+    }
+
     internal class LightboxViewerCopyBuilder
     {
         internal const string HolderName = "LightboxAvatarHolder";
@@ -18,39 +44,69 @@ namespace Hai.LightboxViewer.Scripts.Editor
         private const HideFlags CopyHideFlags = HideFlags.HideAndDontSave;
 
         private readonly Transform _originalRoot;
-        private readonly Dictionary<Transform, Transform> _mirrors;
-        private readonly Dictionary<Renderer, Renderer> _copiedRenderers;
+        private readonly LightboxViewerCopyMaps _maps;
+        private Dictionary<Transform, Transform> _mirrors => _maps.Transforms;
 
-        private LightboxViewerCopyBuilder(Transform originalRoot, Dictionary<Renderer, Renderer> copiedRenderers, Dictionary<Transform, Transform> copiedTransforms)
+        private LightboxViewerCopyBuilder(Transform originalRoot, LightboxViewerCopyMaps maps)
         {
             _originalRoot = originalRoot;
-            _copiedRenderers = copiedRenderers;
-            _mirrors = copiedTransforms ?? new Dictionary<Transform, Transform>();
+            _maps = maps;
         }
 
-        /// Returns the inactive holder of the copy. If copiedRenderers is not null, it receives the renderer of the copy for each original renderer.
-        /// If copiedTransforms is not null, it receives the transform of the copy for each original transform that was copied, including the root.
-        internal static GameObject Build(GameObject originalAvatarGo, Dictionary<Renderer, Renderer> copiedRenderers, Dictionary<Transform, Transform> copiedTransforms)
+        /// Returns the inactive holder of the copy. The maps receive the equivalent object of the copy for each original object that was copied.
+        internal static GameObject Build(GameObject originalAvatarGo, LightboxViewerCopyMaps maps)
         {
-            copiedRenderers?.Clear();
-            copiedTransforms?.Clear();
-            return new LightboxViewerCopyBuilder(originalAvatarGo.transform, copiedRenderers, copiedTransforms).Build();
+            maps.Clear();
+            return new LightboxViewerCopyBuilder(originalAvatarGo.transform, maps).Build();
+        }
+
+        /// Copies the values of these original components onto their equivalent component of the existing copy, as when the copy was created.
+        /// Components that were not copied are ignored. Transforms that the new values reference are created if they do not exist yet.
+        internal static void UpdateComponents(Transform originalRoot, LightboxViewerCopyMaps maps, IEnumerable<Component> originals)
+        {
+            var builder = new LightboxViewerCopyBuilder(originalRoot, maps);
+            foreach (var original in originals)
+            {
+                if (original == null || !maps.Components.TryGetValue(original, out var copy) || copy == null) continue;
+
+                EditorUtility.CopySerialized(original, copy);
+                builder.RemapReferences(copy);
+            }
+        }
+
+        /// Copies the local position, rotation and scale of these original transforms onto their equivalent transform of the existing copy.
+        /// The root is not concerned, as the copy is placed according to the original root on every render.
+        internal static void UpdateTransforms(Transform originalRoot, LightboxViewerCopyMaps maps, IEnumerable<Transform> originals)
+        {
+            foreach (var original in originals)
+            {
+                if (original == null || original == originalRoot || !maps.Transforms.TryGetValue(original, out var copy) || copy == null) continue;
+
+                copy.localPosition = original.localPosition;
+                copy.localRotation = original.localRotation;
+                copy.localScale = original.localScale;
+            }
         }
 
         /// Makes the objects of the copy active or inactive like the original objects, where an object hidden in the Scene view (eye icon of the
-        /// Hierarchy) is inactive. The root of the copy is always active, even if the original is not.
+        /// Hierarchy) is inactive, and puts them on the same layer. The root of the copy is always active, even if the original is not.
         /// This must be applied after anything that changes the renderers of the copy (such as the NDMF Preview result): an object hidden in
         /// the Scene view is never rendered, even if its renderer was changed.
-        internal static void ApplySceneVisibility(IReadOnlyDictionary<Transform, Transform> copiedTransforms, Transform originalRoot)
+        internal static void ApplyGameObjectStates(LightboxViewerCopyMaps maps, Transform originalRoot)
         {
-            foreach (var pair in copiedTransforms)
+            foreach (var pair in maps.Transforms)
             {
                 var original = pair.Key;
                 var copy = pair.Value;
-                if (original == null || copy == null || original == originalRoot) continue;
+                if (original == null || copy == null) continue;
 
-                var active = IsActiveAndVisible(original.gameObject);
-                if (copy.gameObject.activeSelf != active) copy.gameObject.SetActive(active);
+                var copyGo = copy.gameObject;
+                var originalGo = original.gameObject;
+                if (copyGo.layer != originalGo.layer) copyGo.layer = originalGo.layer;
+                if (original == originalRoot) continue;
+
+                var active = IsActiveAndVisible(originalGo);
+                if (copyGo.activeSelf != active) copyGo.SetActive(active);
             }
         }
 
@@ -67,7 +123,8 @@ namespace Hai.LightboxViewer.Scripts.Editor
             holder.SetActive(false);
 
             // Same world position, rotation and scale as the original root.
-            var rootCopy = new GameObject(_originalRoot.name) { hideFlags = CopyHideFlags };
+            // The layer matters for rendering: lights and cameras can have a culling mask.
+            var rootCopy = new GameObject(_originalRoot.name) { hideFlags = CopyHideFlags, layer = _originalRoot.gameObject.layer };
             rootCopy.transform.position = _originalRoot.position;
             rootCopy.transform.rotation = _originalRoot.rotation;
             rootCopy.transform.localScale = _originalRoot.lossyScale;
@@ -104,9 +161,9 @@ namespace Hai.LightboxViewer.Scripts.Editor
             }
 
             var copy = CopyComponent(target, original) as Renderer;
-            if (copy != null && _copiedRenderers != null)
+            if (copy != null)
             {
-                _copiedRenderers[original] = copy;
+                _maps.Renderers[original] = copy;
             }
         }
 
@@ -119,6 +176,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
             EditorUtility.CopySerialized(original, copy);
             RemapReferences(copy);
+            _maps.Components[original] = copy;
             return copy;
         }
 
@@ -185,7 +243,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
             if (_mirrors.TryGetValue(original, out var existing)) return existing;
 
             var parentMirror = Mirror(original.parent);
-            var go = new GameObject(original.name) { hideFlags = CopyHideFlags };
+            var go = new GameObject(original.name) { hideFlags = CopyHideFlags, layer = original.gameObject.layer };
             var mirror = go.transform;
             mirror.SetParent(parentMirror, false);
             mirror.localPosition = original.localPosition;

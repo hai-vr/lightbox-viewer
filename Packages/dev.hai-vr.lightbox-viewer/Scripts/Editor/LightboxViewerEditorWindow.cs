@@ -328,6 +328,16 @@ namespace Hai.LightboxViewer.Scripts.Editor
             Grow(sceneField);
             objectRow.Add(objectField);
             objectRow.Add(sceneField);
+            // The language selector is shared with the other tools that use HaiEFLoc, and is drawn with IMGUI. It starts with a small separator,
+            // so the fields of the row are aligned on its bottom edge.
+            objectRow.style.alignItems = Align.FlexEnd;
+            objectRow.Add(new IMGUIContainer(() =>
+            {
+                var labelWidth = EditorGUIUtility.labelWidth;
+                EditorGUIUtility.labelWidth = 62;
+                localize.Selector(() => _localize = NewLoc());
+                EditorGUIUtility.labelWidth = labelWidth;
+            }) { style = { width = 200, flexShrink = 0, marginLeft = 6 } });
             content.Add(objectRow);
             _sceneField = sceneField;
 
@@ -464,9 +474,6 @@ namespace Hai.LightboxViewer.Scripts.Editor
             sceneField.style.minWidth = 0;
             rollSlider.style.minWidth = 0;
             scroll.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
-
-            // The language selector is shared with the other tools that use HaiEFLoc, and is drawn with IMGUI.
-            content.Add(new IMGUIContainer(() => localize.Selector(() => _localize = NewLoc())));
 
             root.Bind(_so);
             RefreshUI();

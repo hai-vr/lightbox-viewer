@@ -51,9 +51,11 @@ namespace Hai.LightboxViewer.Scripts.Editor
         private bool _foundDefinition;
         private GameObject _previousOriginalObject;
         private GameObject _copiedObject;
-        private readonly Dictionary<Renderer, Renderer> _copiedRenderers = new Dictionary<Renderer, Renderer>();
-        private readonly Dictionary<Transform, Transform> _copiedTransforms = new Dictionary<Transform, Transform>();
-        private bool _sceneVisibilityChanged;
+        private readonly LightboxViewerCopyMaps _copyMaps = new LightboxViewerCopyMaps();
+        // Changes to the original object that are carried over to the existing copy on the next render, instead of creating the copy again.
+        private readonly HashSet<Component> _pendingComponentChanges = new HashSet<Component>();
+        private readonly HashSet<Transform> _pendingTransformChanges = new HashSet<Transform>();
+        private bool _gameObjectStatesChanged;
 
         // Reused across renders, instead of being created and destroyed for every render.
         private Camera _reusableCamera;
@@ -272,7 +274,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
         private void OnSceneVisibilityChanged()
         {
-            _sceneVisibilityChanged = true;
+            _gameObjectStatesChanged = true;
             RequestRerender();
         }
 
@@ -399,45 +401,64 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 var ndmfPreviewChanged = _copiedObject != null
                                          && (_copyHasNdmfPreview != usesNdmfPreview
                                              || usesNdmfPreview && _copiedNdmfPreviewSignature != _ndmfPreviewSignature);
-                if (ndmfPreviewChanged && _previousOriginalObject == originalAvatarGo)
-                {
-                    // Only the preview result changed: update the existing copy instead of creating it again. NDMF Preview can produce
-                    // a new result on several frames in a row (e.g. while its filters complete), and recreating the copy of an object
-                    // with thousands of transforms on each of them took most of a second each time.
-                    Profiler.BeginSample("LightboxViewer.TryRender.ReapplyNdmfPreview");
-                    LightboxViewerNdmfPreview.RestoreFromOriginals(_copiedRenderers);
-                    if (usesNdmfPreview)
-                    {
-                        LightboxViewerNdmfPreview.Apply(originalAvatarGo, _copiedRenderers, NdmfPreviewActiveResultOnly);
-                    }
-                    _copyHasNdmfPreview = usesNdmfPreview;
-                    _copiedNdmfPreviewSignature = _ndmfPreviewSignature;
-                    _sceneVisibilityChanged = true; // The Scene view visibility has priority over the preview result.
-                    Profiler.EndSample();
-                }
-                else if (_copiedObject == null || _previousOriginalObject != originalAvatarGo || ndmfPreviewChanged)
+                if (_copiedObject == null || _previousOriginalObject != originalAvatarGo)
                 {
                     DisposeOfCopiedObject();
 
                     _copiedObject = CreateCopy(originalAvatarGo);
                     if (usesNdmfPreview)
                     {
-                        LightboxViewerNdmfPreview.Apply(originalAvatarGo, _copiedRenderers, NdmfPreviewActiveResultOnly);
+                        LightboxViewerNdmfPreview.Apply(originalAvatarGo, _copyMaps.Renderers, NdmfPreviewActiveResultOnly);
                     }
                     _copyHasNdmfPreview = usesNdmfPreview;
                     _copiedNdmfPreviewSignature = _ndmfPreviewSignature;
                     InvalidateConflictCandidates(); // Lights inside the copy must be known when muting lights inside the object.
 
                     _previousOriginalObject = originalAvatarGo;
-                    _sceneVisibilityChanged = true; // The Scene view visibility has priority over the preview result.
+                    _gameObjectStatesChanged = true; // The Scene view visibility has priority over the preview result.
                 }
+                else
+                {
+                    // The existing copy is updated instead of being created again. Creating the copy of an object with thousands of transforms
+                    // took most of a second, and NDMF Preview can produce a new result on several frames in a row (e.g. while its filters complete).
+                    var reapplyNdmfPreview = ndmfPreviewChanged;
+                    if (_pendingComponentChanges.Count > 0)
+                    {
+                        Profiler.BeginSample("LightboxViewer.TryRender.UpdateCopiedComponents");
+                        LightboxViewerCopyBuilder.UpdateComponents(originalAvatarGo.transform, _copyMaps, _pendingComponentChanges);
+                        Profiler.EndSample();
+                        // The renderers that were updated no longer have the preview result.
+                        reapplyNdmfPreview |= usesNdmfPreview;
+                        _gameObjectStatesChanged = true; // Referenced transforms may have been created.
+                    }
+                    if (_pendingTransformChanges.Count > 0)
+                    {
+                        LightboxViewerCopyBuilder.UpdateTransforms(originalAvatarGo.transform, _copyMaps, _pendingTransformChanges);
+                    }
+
+                    if (reapplyNdmfPreview)
+                    {
+                        Profiler.BeginSample("LightboxViewer.TryRender.ReapplyNdmfPreview");
+                        LightboxViewerNdmfPreview.RestoreFromOriginals(_copyMaps.Renderers);
+                        if (usesNdmfPreview)
+                        {
+                            LightboxViewerNdmfPreview.Apply(originalAvatarGo, _copyMaps.Renderers, NdmfPreviewActiveResultOnly);
+                        }
+                        _copyHasNdmfPreview = usesNdmfPreview;
+                        _copiedNdmfPreviewSignature = _ndmfPreviewSignature;
+                        _gameObjectStatesChanged = true; // The Scene view visibility has priority over the preview result.
+                        Profiler.EndSample();
+                    }
+                }
+                _pendingComponentChanges.Clear();
+                _pendingTransformChanges.Clear();
 
                 // Objects hidden in the Scene view are never rendered, whatever the NDMF Preview result is. This is applied last, after
-                // the preview result, and again whenever the Scene view visibility changes.
-                if (_sceneVisibilityChanged && _copiedObject != null)
+                // the preview result, and again whenever the Scene view visibility or an object of the copy changes.
+                if (_gameObjectStatesChanged && _copiedObject != null)
                 {
-                    LightboxViewerCopyBuilder.ApplySceneVisibility(_copiedTransforms, originalAvatarGo.transform);
-                    _sceneVisibilityChanged = false;
+                    LightboxViewerCopyBuilder.ApplyGameObjectStates(_copyMaps, originalAvatarGo.transform);
+                    _gameObjectStatesChanged = false;
                 }
             }
 
@@ -500,7 +521,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
             // Any change, including to material properties, may change the render.
             if (stream.length > 0) _needsRerender = true;
 
-            var needsDispose = ShouldDisposeDueToChange(stream);
+            var needsDispose = CollectChangesToCopy(stream);
             if (needsDispose)
             {
                 DisposeOfCopiedObject();
@@ -529,7 +550,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 if (eventType == ObjectChangeKind.ChangeGameObjectOrComponentProperties)
                 {
                     stream.GetChangeGameObjectOrComponentPropertiesEvent(i, out var data);
-                    var instance = InstanceOf(data);
+                    var instance = ObjectOf(data);
                     var isPartOfReference = instance is GameObject go && FirstIsAnyParentOfSecond(referenceRoot, go.transform)
                                             || instance is Component component && FirstIsAnyParentOfSecond(referenceRoot, component.transform);
                     if (isPartOfReference) return true;
@@ -566,59 +587,120 @@ namespace Hai.LightboxViewer.Scripts.Editor
             return false;
         }
 
-        private static Object InstanceOf(ChangeGameObjectOrComponentPropertiesEventArgs data)
-        {
-#if UNITY_6000_2_OR_NEWER
-            return EditorUtility.EntityIdToObject(data.entityId);
+        // The identifier of the object of a change event: an int before Unity 6.2, an EntityId since then, and its field is named entityId
+        // since Unity 6.4 (same version gates as NDMF).
+#if UNITY_6000_4_OR_NEWER
+        private static Object ObjectOf(ChangeGameObjectOrComponentPropertiesEventArgs data) => ToObject(data.entityId);
+        private static Object ObjectOf(CreateGameObjectHierarchyEventArgs data) => ToObject(data.entityId);
+        private static Object ObjectOf(ChangeGameObjectStructureEventArgs data) => ToObject(data.entityId);
+        private static Object ObjectOf(ChangeGameObjectStructureHierarchyEventArgs data) => ToObject(data.entityId);
+        private static Object ObjectOf(ChangeGameObjectParentEventArgs data) => ToObject(data.entityId);
 #else
-            return EditorUtility.InstanceIDToObject(data.instanceId);
+        private static Object ObjectOf(ChangeGameObjectOrComponentPropertiesEventArgs data) => ToObject(data.instanceId);
+        private static Object ObjectOf(CreateGameObjectHierarchyEventArgs data) => ToObject(data.instanceId);
+        private static Object ObjectOf(ChangeGameObjectStructureEventArgs data) => ToObject(data.instanceId);
+        private static Object ObjectOf(ChangeGameObjectStructureHierarchyEventArgs data) => ToObject(data.instanceId);
+        private static Object ObjectOf(ChangeGameObjectParentEventArgs data) => ToObject(data.instanceId);
 #endif
-        }
+#if UNITY_6000_3_OR_NEWER
+        private static Object ToObject(EntityId id) => EditorUtility.EntityIdToObject(id);
+#elif UNITY_6000_2_OR_NEWER
+        private static Object ToObject(EntityId id) => EditorUtility.InstanceIDToObject(id);
+#else
+        private static Object ToObject(int id) => EditorUtility.InstanceIDToObject(id);
+#endif
 
-        private bool ShouldDisposeDueToChange(ObjectChangeEventStream stream)
+        /// Returns true if the copy must be created again. Otherwise, the changes that concern the copy are collected, and carried over to it on
+        /// the next render. The copy only contains the renderers, mesh filters, lights and Light Probe Proxy Volumes of the object, and the
+        /// transforms they need, so changes to anything else (e.g. scripts, animators, constraints) cannot change it.
+        private bool CollectChangesToCopy(ObjectChangeEventStream stream)
         {
-            if (_previousOriginalObject == null) return false; // Happens in Play Mode
-            
-            var originalAvatarRoot = _previousOriginalObject.transform;
+            if (_previousOriginalObject == null || _copiedObject == null) return false; // There is no copy (e.g. in Play Mode)
+
+            var originalRoot = _previousOriginalObject.transform;
             for (var i = 0; i < stream.length; i++)
             {
-                var eventType = stream.GetEventType(i);
-                if (eventType == ObjectChangeKind.ChangeGameObjectOrComponentProperties)
+                switch (stream.GetEventType(i))
                 {
-                    stream.GetChangeGameObjectOrComponentPropertiesEvent(i, out var data);
-                    var instance = InstanceOf(data);
-
-                    var isPartOfAvatar = instance is GameObject go && FirstIsAnyParentOfSecond(originalAvatarRoot, go.transform)
-                                         || instance is Component component && FirstIsAnyParentOfSecond(originalAvatarRoot, component.transform);
-
-                    if (isPartOfAvatar)
+                    case ObjectChangeKind.ChangeGameObjectOrComponentProperties:
                     {
-                        if (instance is not Transform)
+                        stream.GetChangeGameObjectOrComponentPropertiesEvent(i, out var data);
+                        var instance = ObjectOf(data);
+                        if (instance is Transform transform)
                         {
-                            return true;
+                            // The root is not concerned, as the copy is placed according to the original root on every render.
+                            if (transform != originalRoot && _copyMaps.Transforms.ContainsKey(transform)) _pendingTransformChanges.Add(transform);
                         }
-                        if (instance != originalAvatarRoot)
+                        else if (instance is Component component)
                         {
-                            // TODO: Figure out a way to carry over changes in child transforms without having to dispose.
-                            return true;
+                            if (_copyMaps.Components.ContainsKey(component)) _pendingComponentChanges.Add(component);
                         }
+                        else if (instance is GameObject go)
+                        {
+                            // Active state, layer.
+                            if (_copyMaps.Transforms.ContainsKey(go.transform)) _gameObjectStatesChanged = true;
+                        }
+                        break;
                     }
-                }
-                else if (eventType == ObjectChangeKind.ChangeAssetObjectProperties)
-                {
-                    // The copy references the same assets as the original (materials, textures, meshes...),
-                    // so changes to assets are already visible in the copy, and there is no need to dispose of it.
-                    // This is important because editing material properties publishes this event every time.
-                    continue;
-                }
-                else
-                {
-                    // TODO: This also causes dispose if things happen outside of the avatar. This could be narrowed down.
-                    return true;
+                    case ObjectChangeKind.ChangeAssetObjectProperties:
+                    case ObjectChangeKind.CreateAssetObject:
+                    case ObjectChangeKind.DestroyAssetObject:
+                        // The copy references the same assets as the original (materials, textures, meshes...),
+                        // so changes to assets are already visible in the copy, and there is no need to update it.
+                        // This is important because editing material properties publishes this event every time.
+                        break;
+                    case ObjectChangeKind.ChangeScene:
+                    case ObjectChangeKind.ChangeChildrenOrder:
+                        // Neither the scene settings nor the order of children change the copy.
+                        break;
+                    case ObjectChangeKind.CreateGameObjectHierarchy:
+                    {
+                        stream.GetCreateGameObjectHierarchyEvent(i, out var data);
+                        if (ConcernsCopy(ObjectOf(data), originalRoot)) return true;
+                        break;
+                    }
+                    case ObjectChangeKind.ChangeGameObjectStructure:
+                    {
+                        // Components added or removed.
+                        stream.GetChangeGameObjectStructureEvent(i, out var data);
+                        if (ConcernsCopy(ObjectOf(data), originalRoot)) return true;
+                        break;
+                    }
+                    case ObjectChangeKind.ChangeGameObjectStructureHierarchy:
+                    {
+                        stream.GetChangeGameObjectStructureHierarchyEvent(i, out var data);
+                        if (ConcernsCopy(ObjectOf(data), originalRoot)) return true;
+                        break;
+                    }
+                    case ObjectChangeKind.ChangeGameObjectParent:
+                    {
+                        // The object may have been moved into the object, or out of it (it was copied, so it is in the maps).
+                        stream.GetChangeGameObjectParentEvent(i, out var data);
+                        if (ConcernsCopy(ObjectOf(data), originalRoot)) return true;
+                        break;
+                    }
+                    case ObjectChangeKind.DestroyGameObjectHierarchy:
+                        // The destroyed object no longer exists, so it is only known to concern the copy if something that was copied is gone.
+                        if (_copyMaps.AnyOriginalDestroyed()) return true;
+                        break;
+                    default:
+                        // Prefab instance updates, and any other change: create the copy again.
+                        return true;
                 }
             }
 
             return false;
+        }
+
+        /// True if this object is part of the original object, contains it, or was copied.
+        private bool ConcernsCopy(Object instance, Transform originalRoot)
+        {
+            if (!(instance is GameObject go)) return true; // Unknown: assume that it does.
+
+            var transform = go.transform;
+            return FirstIsAnyParentOfSecond(originalRoot, transform)
+                   || FirstIsAnyParentOfSecond(transform, originalRoot)
+                   || _copyMaps.Transforms.ContainsKey(transform);
         }
 
         private void DisposeOfCopiedObject()
@@ -627,8 +709,9 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
             Object.DestroyImmediate(_copiedObject);
             _copiedObject = null;
-            _copiedRenderers.Clear();
-            _copiedTransforms.Clear();
+            _copyMaps.Clear();
+            _pendingComponentChanges.Clear();
+            _pendingTransformChanges.Clear();
             InvalidateConflictCandidates();
             _previousOriginalObject = null;
         }
@@ -636,7 +719,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
         /// Creates the copy of the object that is rendered in Edit Mode. See LightboxViewerCopyBuilder.
         private GameObject CreateCopy(GameObject originalAvatarGo)
         {
-            return LightboxViewerCopyBuilder.Build(originalAvatarGo, _copiedRenderers, _copiedTransforms);
+            return LightboxViewerCopyBuilder.Build(originalAvatarGo, _copyMaps);
         }
 
         private void Render(GameObject copy)
