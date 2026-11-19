@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Linq;
 using System.Reflection;
+using Hai.LightboxViewer.Scripts.Runtime;
 using UnityEditor;
+using UnityEditor.UIElements;
 using UnityEditor.PackageManager;
 using UnityEngine;
 using UnityEngine.Profiling;
@@ -10,6 +12,7 @@ using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 #endif
 using UnityEngine.SceneManagement;
+using UnityEngine.UIElements;
 
 // ReSharper disable once CheckNamespace
 namespace Hai.LightboxViewer.Scripts.Editor
@@ -119,7 +122,6 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
         private static string PrefsKey(string prop) => $"{LightboxViewerPrefsKey}.{prop}";
 
-        private Vector2 _scrollPos;
         private int _generatedSize;
         
         // Special passes
@@ -133,7 +135,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
             titleContent = new GUIContent("LightboxViewer");
             // SceneView.duringSceneGui -= DuringSceneGui;
             // SceneView.duringSceneGui += DuringSceneGui;
-            _repaint = Repaint;
+            _repaint = MarkTexturesDirty;
         }
 
         private void OnEnable()
@@ -225,6 +227,8 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
         private void Update()
         {
+            RefreshUI();
+
             if (!enabled) return;
             if (enabled && lightboxScene == null)
             {
@@ -262,253 +266,457 @@ namespace Hai.LightboxViewer.Scripts.Editor
             // _projectRenderQueue.Referential(_referentialVector, _referentialQuaternion);
         // }
 
-        private void OnGUI()
+        // UI Toolkit. The elements are created once in CreateGUI, and RefreshUI (called every editor update) brings them in line with the state.
+        private const float CellGap = 2;
+        private static readonly Color ActiveRed = new Color(0.8f, 0.25f, 0.25f);
+        private static readonly Color ActiveGreen = new Color(0.3f, 0.7f, 0.3f);
+
+        private SerializedObject _so;
+        private VisualElement _uiRoot;
+        private Button _activateButton;
+        private VisualElement _activateRow;
+        private VisualElement _playModeRow;
+        private VisualElement _modifiedRow;
+        private Button _modifiedActivateButton;
+        private Toggle _counterRotateToggle;
+        private Button _rollResetButton;
+        private Foldout _advancedFoldout;
+        private Toggle _collapsedPostProcessingToggle;
+        private Slider _verticalDisplacementSlider;
+        private VisualElement _postProcessingMissingRow;
+        private Button _installPostProcessingButton;
+        private VisualElement _sidebar;
+        private Toggle _postProcessingToggle;
+        private Toggle _muteLightsToggle;
+        private Toggle _depthTextureToggle;
+        private VisualElement _ndmfPreviewGroup;
+        private PopupField<LightboxViewerNdmfPreviewMode> _ndmfPreviewPopup;
+        private Toggle _alwaysRefreshToggle;
+        private Label _antiAliasingLabel;
+        private SliderInt _antiAliasingSlider;
+        private Button _realignButton;
+        private VisualElement _collectionsContainer;
+        private VisualElement _collectionsList;
+        private LightboxViewerDefinition _collectionsDefinition;
+        private readonly System.Collections.Generic.List<(string key, Toggle toggle)> _collectionToggles = new System.Collections.Generic.List<(string, Toggle)>();
+        private VisualElement _textureArea;
+        private VisualElement _textureGrid;
+        private HelpBox _invalidSceneHelpBox;
+        private readonly System.Collections.Generic.List<LightboxViewerUntintedImage> _cells = new System.Collections.Generic.List<LightboxViewerUntintedImage>();
+        private Texture[] _shownTextures = new Texture[0];
+        private int _shownCellWidth;
+        private int _shownCellHeight;
+
+        private void CreateGUI()
         {
-            Profiler.BeginSample("LightboxViewer.EditorWindow.OnGUI");
-            var headerLines = 5.5f;
+            _so = new SerializedObject(this);
+            _cells.Clear();
+            _collectionToggles.Clear();
+            _tinted.Clear();
+            _collectionsDefinition = null;
+            _shownTextures = new Texture[0];
 
-            _scrollPos = GUILayout.BeginScrollView(_scrollPos, GUILayout.Height(position.height - EditorGUIUtility.singleLineHeight));
-            var serializedObject = new SerializedObject(this);
+            var root = rootVisualElement;
+            root.Clear();
+            _uiRoot = root;
 
-            EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(objectToView)));
-            EditorGUI.BeginDisabledGroup(enabled);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(lightboxScene)));
-            EditorGUI.EndDisabledGroup();
-            EditorGUILayout.EndHorizontal();
+            var scroll = new ScrollView();
+            scroll.style.flexGrow = 1;
+            scroll.contentContainer.style.flexGrow = 1;
+            root.Add(scroll);
+            var content = scroll.contentContainer;
 
-            EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.Slider(serializedObject.FindProperty(nameof(cameraRoll)), -1f, 1f);
-            EditorGUILayout.LabelField(CounterRotateLabel, GUILayout.Width(100));
+            // Object and scene
+            var objectRow = Row();
+            var objectField = new ObjectField("Object To View") { objectType = typeof(Transform), allowSceneObjects = true, bindingPath = nameof(objectToView) };
+            var sceneField = new ObjectField("Lightbox Scene") { objectType = typeof(SceneAsset), allowSceneObjects = false, bindingPath = nameof(lightboxScene) };
+            Grow(objectField);
+            Grow(sceneField);
+            objectRow.Add(objectField);
+            objectRow.Add(sceneField);
+            content.Add(objectRow);
+            _sceneField = sceneField;
 
-            PrefsToggle("", CounterRotate, newValue => CounterRotate = newValue, GUILayout.Width(EditorGUIUtility.singleLineHeight));
-            EditorGUI.BeginDisabledGroup(cameraRoll == 0);
-            if (ColoredBgButton(cameraRoll != 0, Color.green, () => GUILayout.Button(ResetLabel, GUILayout.Width(150))))
+            // Camera roll
+            var rollRow = Row();
+            var rollSlider = new Slider("Camera Roll", -1f, 1f) { showInputField = true, bindingPath = nameof(cameraRoll) };
+            rollSlider.style.flexGrow = 1;
+            rollRow.Add(rollSlider);
+            var counterRotateLabel = new Label(CounterRotateLabel) { style = { width = 100, unityTextAlign = TextAnchor.MiddleLeft } };
+            rollRow.Add(counterRotateLabel);
+            _counterRotateToggle = new Toggle { style = { width = EditorGUIUtility.singleLineHeight } }; // No label
+            _counterRotateToggle.RegisterValueChangedCallback(e => CounterRotate = e.newValue);
+            rollRow.Add(_counterRotateToggle);
+            _rollResetButton = new Button(() =>
             {
-                serializedObject.FindProperty(nameof(cameraRoll)).floatValue = 0;
-            }
-            EditorGUI.EndDisabledGroup();
-            EditorGUILayout.EndHorizontal();
+                _so.Update();
+                _so.FindProperty(nameof(cameraRoll)).floatValue = 0;
+                _so.ApplyModifiedProperties();
+            }) { text = ResetLabel, style = { width = 150 } };
+            rollRow.Add(_rollResetButton);
+            content.Add(rollRow);
 
-            if (objectToView == null || lightboxScene == null || SceneManager.GetSceneAt(0).path == AssetDatabase.GetAssetPath(lightboxScene))
+            // Activation
+            _activateRow = Row();
+            _activateButton = new Button(ToggleLightboxViewer) { text = ActivateLightboxViewerLabel };
+            Grow(_activateButton);
+            _activateRow.Add(_activateButton);
+            content.Add(_activateRow);
+
+            _playModeRow = Row();
+            var playModeHelp = new HelpBox(MsgPlayModeRequiresPreActivation, HelpBoxMessageType.Warning);
+            Grow(playModeHelp);
+            _playModeRow.Add(playModeHelp);
+            _playModeRow.Add(new Button(() =>
             {
-                EditorGUI.BeginDisabledGroup(true);
-                ColoredBgButton(enabled, Color.red, () => GUILayout.Button(ActivateLightboxViewerLabel));
-                EditorGUI.EndDisabledGroup();
-            }
-            else if (Application.isPlaying && !enabled)
+                EditorApplication.isPlaying = false;
+                EditorApplication.delayCall += RestartPlayMode;
+            }) { text = RestartPlayModeLabel, style = { width = Length.Percent(50), height = EditorGUIUtility.singleLineHeight * 2 } });
+            content.Add(_playModeRow);
+
+            _modifiedRow = Row();
+            _modifiedActivateButton = new Button { text = ActivateLightboxViewerLabel, style = { height = EditorGUIUtility.singleLineHeight * 2 } };
+            _modifiedActivateButton.SetEnabled(false);
+            Grow(_modifiedActivateButton);
+            _modifiedRow.Add(_modifiedActivateButton);
+            var modifiedHelp = new HelpBox(MsgLightboxSceneModifiedPromptSave, HelpBoxMessageType.Warning);
+            Grow(modifiedHelp);
+            _modifiedRow.Add(modifiedHelp);
+            _modifiedRow.Add(new Button(() => ProjectRenderQueue.SaveLightbox()) { text = SaveLabel, style = { width = 100, height = EditorGUIUtility.singleLineHeight * 2 } });
+            _modifiedRow.Add(new Button(Disable) { text = DiscardLabel, style = { width = 100, height = EditorGUIUtility.singleLineHeight * 2 } });
+            content.Add(_modifiedRow);
+
+            // Advanced
+            var advancedRow = Row();
+            _advancedFoldout = new Foldout { text = AdvancedLabel, value = advanced };
+            _advancedFoldout.style.flexGrow = 1;
+            _advancedFoldout.RegisterValueChangedCallback(e =>
             {
-                EditorGUILayout.BeginHorizontal();
-                EditorGUILayout.HelpBox(MsgPlayModeRequiresPreActivation, MessageType.Warning);
-                if (GUILayout.Button(RestartPlayModeLabel, GUILayout.Width(position.width / 2), GUILayout.Height(EditorGUIUtility.singleLineHeight * 2)))
-                {
-                    EditorApplication.isPlaying = false;
-                    EditorApplication.delayCall += RestartPlayMode;
-                }
-                EditorGUILayout.EndHorizontal();
-            }
-            else if (!Application.isPlaying && enabled && ProjectRenderQueue.SceneIsChanged())
+                if (e.target != _advancedFoldout) return; // Value change events bubble up from children
+                advanced = e.newValue;
+            });
+            advancedRow.Add(_advancedFoldout);
+            _collapsedPostProcessingToggle = new Toggle { text = ObjectNames.NicifyVariableName(nameof(PostProcessing)) };
+            _collapsedPostProcessingToggle.RegisterValueChangedCallback(e => PostProcessing = e.newValue);
+            advancedRow.Add(_collapsedPostProcessingToggle);
+            content.Add(advancedRow);
+
+
+            _postProcessingMissingRow = Row();
+            var postProcessingHelp = new HelpBox(MsgPostProcessingMissing, HelpBoxMessageType.Warning);
+            Grow(postProcessingHelp);
+            _postProcessingMissingRow.Add(postProcessingHelp);
+            _installPostProcessingButton = new Button(() =>
             {
-                EditorGUILayout.BeginHorizontal();
-                EditorGUI.BeginDisabledGroup(true);
-                ColoredBgButton(enabled, Color.red, () => GUILayout.Button(ActivateLightboxViewerLabel, GUILayout.Height(EditorGUIUtility.singleLineHeight * 2)));
-                EditorGUI.EndDisabledGroup();
+                _ppInstall = true;
+                Client.Add("com.unity.postprocessing");
+            }) { text = InstallPostProcessingLabel, style = { width = 200, height = EditorGUIUtility.singleLineHeight * 2 } };
+            _postProcessingMissingRow.Add(_installPostProcessingButton);
+            content.Add(_postProcessingMissingRow);
 
-                EditorGUILayout.HelpBox(MsgLightboxSceneModifiedPromptSave, MessageType.Warning);
-                headerLines += 2;
-                if (GUILayout.Button(SaveLabel, GUILayout.Width(100), GUILayout.Height(EditorGUIUtility.singleLineHeight * 2)))
-                {
-                    ProjectRenderQueue.SaveLightbox();
-                }
-                if (GUILayout.Button(DiscardLabel, GUILayout.Width(100), GUILayout.Height(EditorGUIUtility.singleLineHeight * 2)))
-                {
-                    Disable();
-                }
-                EditorGUILayout.EndHorizontal();
-            }
-            else
-            {
-                EditorGUI.BeginDisabledGroup(objectToView == null || Application.isPlaying);
-                if (ColoredBgButton(enabled, Color.red, () => GUILayout.Button(ActivateLightboxViewerLabel)))
-                {
-                    ToggleLightboxViewer();
-                }
-                EditorGUI.EndDisabledGroup();
-            }
+            // Sidebar and textures
+            var mainRow = Row();
+            mainRow.style.flexGrow = 1;
+            content.Add(mainRow);
 
-            if (advanced)
-            {
-                advanced = EditorGUILayout.Foldout(advanced, AdvancedLabel);
+            _sidebar = new VisualElement { style = { width = SidebarWidth, flexShrink = 0 } };
+            mainRow.Add(_sidebar);
+            // Same style as Anti-aliasing: a label above a slider, without the value.
+            _sidebar.Add(new Label(ObjectNames.NicifyVariableName(nameof(VerticalDisplacement))));
+            _verticalDisplacementSlider = new Slider(0f, 2f);
+            _verticalDisplacementSlider.RegisterValueChangedCallback(e => VerticalDisplacement = e.newValue);
+            _sidebar.Add(_verticalDisplacementSlider);
+            _sidebar.Add(new Label(RenderingLabel) { style = { unityFontStyleAndWeight = FontStyle.Bold } });
+            _postProcessingToggle = PrefsToggle(nameof(PostProcessing), newValue => PostProcessing = newValue);
+            _muteLightsToggle = PrefsToggle(nameof(MuteLightsInsideObject), newValue => MuteLightsInsideObject = newValue);
+            _depthTextureToggle = PrefsToggle(nameof(SupportDepthTexture), newValue => SupportDepthTexture = newValue);
+            _alwaysRefreshToggle = PrefsToggle(nameof(AlwaysRefresh), newValue => AlwaysRefresh = newValue);
+            // Same style as Anti-aliasing: a label above the field.
+            _ndmfPreviewGroup = new VisualElement { tooltip = NdmfPreviewTooltip };
+            _ndmfPreviewGroup.Add(new Label(NdmfPreviewLabel));
+            _ndmfPreviewPopup = new PopupField<LightboxViewerNdmfPreviewMode>(NdmfPreviewModes, NdmfPreviewMode, NdmfPreviewModeName, NdmfPreviewModeName);
+            _ndmfPreviewPopup.RegisterValueChangedCallback(e => NdmfPreviewMode = e.newValue);
+            _ndmfPreviewGroup.Add(_ndmfPreviewPopup);
+            _sidebar.Add(_ndmfPreviewGroup);
+            _antiAliasingLabel = new Label();
+            _sidebar.Add(_antiAliasingLabel);
+            _antiAliasingSlider = new SliderInt(0, 3);
+            _antiAliasingSlider.RegisterValueChangedCallback(e => AntiAliasingSlider = e.newValue);
+            _sidebar.Add(_antiAliasingSlider);
+            var referenceCameraField = new ObjectField("Reference Camera") { objectType = typeof(Camera), allowSceneObjects = true, bindingPath = nameof(referenceCamera) };
+            _sidebar.Add(referenceCameraField);
+            _realignButton = new Button(Realign) { text = RealignLabel };
+            _sidebar.Add(_realignButton);
 
-                EditorGUILayout.BeginHorizontal();
-                PrefsSlider(nameof(VerticalDisplacement), VerticalDisplacement, newValue => VerticalDisplacement = newValue, 0f, 2f);
-                EditorGUI.BeginDisabledGroup(VerticalDisplacement == 0);
-                if (ColoredBgButton(VerticalDisplacement != 0, Color.green, () => GUILayout.Button(ResetLabel, GUILayout.Width(150))))
-                {
-                    VerticalDisplacement = 0;
-                }
-                EditorGUI.EndDisabledGroup();
-                EditorGUILayout.EndHorizontal();
-                headerLines += 1;
-            }
-            else
-            {
-                EditorGUILayout.BeginHorizontal();
-                advanced = EditorGUILayout.Foldout(advanced, AdvancedLabel);
-                GUILayout.FlexibleSpace();
-                PrefsToggle(nameof(PostProcessing), PostProcessing, newValue => PostProcessing = newValue);
-                EditorGUILayout.EndHorizontal();
-            }
+            _collectionsContainer = new VisualElement { style = { marginTop = 6 } };
+            _collectionsContainer.Add(new Label(CollectionsLabel) { style = { unityFontStyleAndWeight = FontStyle.Bold } });
+            _collectionsList = new VisualElement();
+            _collectionsContainer.Add(_collectionsList);
+            _sidebar.Add(_collectionsContainer);
 
-            if (_isBuiltInRenderPipeline && PplType == null)
-            {
-                EditorGUILayout.BeginHorizontal();
-                EditorGUILayout.HelpBox(MsgPostProcessingMissing, MessageType.Warning);
-                headerLines += 2;
-                EditorGUI.BeginDisabledGroup(_ppInstall);
-                if (GUILayout.Button(InstallPostProcessingLabel, GUILayout.Width(200), GUILayout.Height(EditorGUIUtility.singleLineHeight * 2)))
-                {
-                    _ppInstall = true;
-                    Client.Add("com.unity.postprocessing");
-                }
-                EditorGUI.EndDisabledGroup();
-                EditorGUILayout.EndHorizontal();
-            }
+            _textureArea = new VisualElement { style = { flexGrow = 1, flexBasis = 0, overflow = Overflow.Hidden } };
+            _textureGrid = new VisualElement();
+            _textureArea.Add(_textureGrid);
+            _invalidSceneHelpBox = new HelpBox(MsgInvalidLightboxScene, HelpBoxMessageType.Error);
+            _textureArea.Add(_invalidSceneHelpBox);
+            mainRow.Add(_textureArea);
 
-            EditorGUILayout.BeginHorizontal();
-            if (advanced)
-            {
-                EditorGUILayout.BeginVertical(GUILayout.Width(SidebarWidth));
-            
-                EditorGUILayout.LabelField(RenderingLabel, EditorStyles.boldLabel);
-                PrefsToggle(nameof(PostProcessing), PostProcessing, newValue => PostProcessing = newValue);
-                PrefsToggle(nameof(MuteLightsInsideObject), MuteLightsInsideObject, newValue => MuteLightsInsideObject = newValue);
-                PrefsToggle(nameof(SupportDepthTexture), SupportDepthTexture, newValue => SupportDepthTexture = newValue);
-                if (LightboxViewerNdmfPreview.IsAvailable)
-                {
-                    EditorGUILayout.LabelField(new GUIContent(NdmfPreviewLabel, NdmfPreviewTooltip));
-                    var currentIndex = NdmfPreviewModes.IndexOf(NdmfPreviewMode);
-                    EditorGUI.BeginChangeCheck();
-                    var newIndex = EditorGUILayout.Popup(currentIndex, NdmfPreviewModes.Select(NdmfPreviewModeName).ToArray());
-                    if (EditorGUI.EndChangeCheck())
-                    {
-                        NdmfPreviewMode = NdmfPreviewModes[newIndex];
-                    }
-                }
-                PrefsToggle(nameof(AlwaysRefresh), AlwaysRefresh, newValue => AlwaysRefresh = newValue);
-                EditorGUI.BeginChangeCheck();
-                var aaSlider = AntiAliasingSlider;
-                EditorGUILayout.LabelField($"{AntiAliasingLabel} ({RemapAntiAliasing(aaSlider)})", GUILayout.Width(EditorGUIUtility.labelWidth - 2));
-                var newAaSlider = Mathf.RoundToInt(GUILayout.HorizontalSlider(aaSlider, 0, 3, GUILayout.Height(EditorGUIUtility.singleLineHeight)));
-                if (EditorGUI.EndChangeCheck())
-                {
-                    AntiAliasingSlider = newAaSlider;
-                }
-                EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(referenceCamera)));
+            // A horizontal scrollbar used to appear for no useful reason. The rows at the top (the two object fields, the camera roll slider) contain
+            // labels and inputs with a minimum width, next to fixed-width elements (language selector, buttons), so they could be wider than the window,
+            // and the ScrollView then offered to scroll to the part that was cut off. Let those fields shrink with the window, and never show the
+            // horizontal scrollbar: the layout always adapts to the width of the window.
+            content.Query<Label>(className: BaseField<float>.labelUssClassName).ForEach(label => label.style.minWidth = 0);
+            objectField.style.minWidth = 0;
+            sceneField.style.minWidth = 0;
+            rollSlider.style.minWidth = 0;
+            scroll.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
 
-                EditorGUI.BeginDisabledGroup(!enabled);
-                if (GUILayout.Button(RealignLabel))
-                {
-                    Realign();
-                }
-                EditorGUI.EndDisabledGroup();
+            root.Bind(_so);
+            RefreshUI();
+        }
 
-                if (enabled)
-                {
-                    EditorGUILayout.Separator();
-                    EditorGUILayout.LabelField(CollectionsLabel, EditorStyles.boldLabel);
-                    var definition = ProjectRenderQueue.DefinitionNullable;
-                    if (definition != null)
-                    {
-                        foreach (var group in definition.viewGroups)
-                        {
-                            var isSelected = group.key == selected;
-                            EditorGUI.BeginChangeCheck();
-                            EditorGUILayout.ToggleLeft(group.title, isSelected);
-                            if (EditorGUI.EndChangeCheck())
-                            {
-                                selected = group.key;
-                            }
-                        }
-                    }
-                }
-            
-                EditorGUILayout.EndVertical();
-            }
-            
-            serializedObject.ApplyModifiedProperties();
+        private ObjectField _sceneField;
 
-            if (objectToView != null)
-            {
-                _focusedObjectNullable = objectToView.gameObject;
-                ProjectRenderQueue.QueueSize(int.MaxValue);
-                ProjectRenderQueue.Roll(cameraRoll * 180);
-                ProjectRenderQueue.CounterRotate(CounterRotate);
-                ProjectRenderQueue.Camera(referenceCamera);
-                ProjectRenderQueue.PostProcessing(PostProcessing);
-                ProjectRenderQueue.AntiAliasing(RemapAntiAliasing(AntiAliasingSlider));
-                ProjectRenderQueue.VerticalDisplacement(VerticalDisplacement);
-                ProjectRenderQueue.MuteLightsInsideObject(MuteLightsInsideObject);
-                ProjectRenderQueue.EnableDepthTexture(SupportDepthTexture, _depthEnabler);
-                ProjectRenderQueue.NdmfPreviewMode(NdmfPreviewMode);
-                ProjectRenderQueue.Selected(selected);
-            }
-            
-            EditorGUILayout.BeginVertical();
-            var att = ProjectRenderQueue.Textures();
-            if (att.Length != 0)
-            {
-                var names = ProjectRenderQueue.Names();
+        private static VisualElement Row()
+        {
+            return new VisualElement { style = { flexDirection = FlexDirection.Row } };
+        }
 
-                var availableWidth = position.width - (advanced ? SidebarWidth + 10 : 0);
-                var availableHeight = position.height - EditorGUIUtility.singleLineHeight * headerLines;
+        private static void Grow(VisualElement element)
+        {
+            element.style.flexGrow = 1;
+            element.style.flexBasis = 0;
+        }
 
-                int columns;
-                int rows;
-                if (att.Length == 3)
-                {
-                    columns = 3;
-                    rows = 1;
-                }
-                else
-                {
-                    columns = Mathf.CeilToInt(Mathf.Sqrt(att.Length));
-                    rows = (1 + (att.Length - 1) / columns);
-                }
+        private Toggle PrefsToggle(string propName, Action<bool> setterFn)
+        {
+            // Checkbox on the left and text on its right, like the Collections toggles.
+            var toggle = new Toggle { text = ObjectNames.NicifyVariableName(propName) };
+            toggle.RegisterValueChangedCallback(e => setterFn(e.newValue));
+            _sidebar.Add(toggle);
+            return toggle;
+        }
 
-                var padding = 10;
-                var actualWidth = SanitizeTextureSize((int) availableWidth / columns - padding);
-                var actualHeight = SanitizeTextureSize((int) availableHeight / rows - padding);
-                ProjectRenderQueue.Width(actualWidth);
-                ProjectRenderQueue.Height(actualHeight);
+        // Writing a style or an enabled state marks the panel as needing a repaint, even when the value is the same,
+        // so RefreshUI (called on every editor update) must only write when the value changes.
+        private readonly System.Collections.Generic.Dictionary<Button, bool> _tinted = new System.Collections.Generic.Dictionary<Button, bool>();
 
-                var bypassPlaymodeTintOldColor = GUI.color;
-                GUI.color = Color.white;
-                for (var i = 0; i < columns; i++)
-                {
-                    EditorGUILayout.BeginHorizontal();
-                    for (int k = i * columns; k < Math.Min(att.Length, (i * columns) + columns); k++)
-                    {
-                        var texture = att[k];
-                        GUILayout.Box(new GUIContent(texture, names[k]), GUILayout.Width(actualWidth), GUILayout.Height(actualHeight));
-                    }
+        private void Tint(Button button, bool active, Color color)
+        {
+            if (_tinted.TryGetValue(button, out var previous) && previous == active) return;
 
-                    EditorGUILayout.EndHorizontal();
-                }
+            _tinted[button] = active;
+            if (active) button.style.backgroundColor = color;
+            else button.style.backgroundColor = StyleKeyword.Null;
+        }
 
-                GUI.color = bypassPlaymodeTintOldColor;
-            }
-            else
-            {
-                if (enabled)
-                {
-                    EditorGUILayout.HelpBox(MsgInvalidLightboxScene, MessageType.Error);
-                }
-            }
-            EditorGUILayout.EndVertical();
-            EditorGUILayout.EndHorizontal();
-            EditorGUILayout.EndScrollView();
+        private static void SetValue<T>(BaseField<T> field, T value)
+        {
+            if (!System.Collections.Generic.EqualityComparer<T>.Default.Equals(field.value, value)) field.SetValueWithoutNotify(value);
+        }
+
+        private static void Enable(VisualElement element, bool enable)
+        {
+            if (element.enabledSelf != enable) element.SetEnabled(enable);
+        }
+
+        private static void Show(VisualElement element, bool visible)
+        {
+            var display = visible ? DisplayStyle.Flex : DisplayStyle.None;
+            if (element.style.display != display) element.style.display = display;
+        }
+
+        /// Brings the elements in line with the state, and passes the settings to the render queue. Called on every editor update.
+        private void RefreshUI()
+        {
+            if (_uiRoot == null || _so == null) return;
+            Profiler.BeginSample("LightboxViewer.EditorWindow.RefreshUI");
+
+            Enable(_sceneField, !enabled);
+
+            var rollIsZero = cameraRoll == 0;
+            SetValue(_counterRotateToggle, CounterRotate);
+            Enable(_rollResetButton, !rollIsZero);
+            Tint(_rollResetButton, !rollIsZero, ActiveGreen);
+
+            var invalidTargets = objectToView == null || lightboxScene == null || SceneManager.GetSceneAt(0).path == AssetDatabase.GetAssetPath(lightboxScene);
+            var showPlayModeWarning = !invalidTargets && Application.isPlaying && !enabled;
+            var showModified = !invalidTargets && !showPlayModeWarning && !Application.isPlaying && enabled && ProjectRenderQueue.SceneIsChanged();
+            var showActivate = !showPlayModeWarning && !showModified;
+            Show(_activateRow, showActivate);
+            Show(_playModeRow, showPlayModeWarning);
+            Show(_modifiedRow, showModified);
+            Enable(_activateButton, !invalidTargets && !(objectToView == null || Application.isPlaying));
+            Tint(_activateButton, enabled, ActiveRed);
+            Tint(_modifiedActivateButton, enabled, ActiveRed);
+
+            if (_advancedFoldout.value != advanced) _advancedFoldout.SetValueWithoutNotify(advanced);
+            Show(_collapsedPostProcessingToggle, !advanced);
+            SetValue(_collapsedPostProcessingToggle, PostProcessing);
+            SetValue(_verticalDisplacementSlider, VerticalDisplacement);
+
+            Show(_postProcessingMissingRow, _isBuiltInRenderPipeline && PplType == null);
+            Enable(_installPostProcessingButton, !_ppInstall);
+
+            Show(_sidebar, advanced);
+            SetValue(_postProcessingToggle, PostProcessing);
+            SetValue(_muteLightsToggle, MuteLightsInsideObject);
+            SetValue(_depthTextureToggle, SupportDepthTexture);
+            Show(_ndmfPreviewGroup, LightboxViewerNdmfPreview.IsAvailable);
+            SetValue(_ndmfPreviewPopup, NdmfPreviewMode);
+            SetValue(_alwaysRefreshToggle, AlwaysRefresh);
+            var aaSlider = AntiAliasingSlider;
+            var antiAliasingText = $"{AntiAliasingLabel} ({RemapAntiAliasing(aaSlider)})";
+            if (_antiAliasingLabel.text != antiAliasingText) _antiAliasingLabel.text = antiAliasingText;
+            SetValue(_antiAliasingSlider, aaSlider);
+            Enable(_realignButton, enabled);
+            RefreshCollections();
+
+            PassSettingsToRenderQueue();
+            RefreshTextures();
             Profiler.EndSample();
+        }
+
+        private void RefreshCollections()
+        {
+            Show(_collectionsContainer, enabled);
+            if (!enabled) return;
+
+            var definition = ProjectRenderQueue.DefinitionNullable;
+            if (definition != _collectionsDefinition)
+            {
+                _collectionsDefinition = definition;
+                _collectionsList.Clear();
+                _collectionToggles.Clear();
+                if (definition != null)
+                {
+                    foreach (var group in definition.viewGroups)
+                    {
+                        var key = group.key;
+                        var toggle = new Toggle { text = group.title };
+                        toggle.RegisterValueChangedCallback(e => selected = key);
+                        _collectionsList.Add(toggle);
+                        _collectionToggles.Add((key, toggle));
+                    }
+                }
+            }
+
+            foreach (var (key, toggle) in _collectionToggles)
+            {
+                SetValue(toggle, key == selected);
+            }
+        }
+
+        private void PassSettingsToRenderQueue()
+        {
+            if (objectToView == null) return;
+
+            _focusedObjectNullable = objectToView.gameObject;
+            ProjectRenderQueue.QueueSize(int.MaxValue);
+            ProjectRenderQueue.Roll(cameraRoll * 180);
+            ProjectRenderQueue.CounterRotate(CounterRotate);
+            ProjectRenderQueue.Camera(referenceCamera);
+            ProjectRenderQueue.PostProcessing(PostProcessing);
+            ProjectRenderQueue.AntiAliasing(RemapAntiAliasing(AntiAliasingSlider));
+            ProjectRenderQueue.VerticalDisplacement(VerticalDisplacement);
+            ProjectRenderQueue.MuteLightsInsideObject(MuteLightsInsideObject);
+            ProjectRenderQueue.EnableDepthTexture(SupportDepthTexture, _depthEnabler);
+            ProjectRenderQueue.NdmfPreviewMode(NdmfPreviewMode);
+            ProjectRenderQueue.Selected(selected);
+        }
+
+        private void RefreshTextures()
+        {
+            var textures = ProjectRenderQueue.Textures();
+            Show(_invalidSceneHelpBox, textures.Length == 0 && enabled);
+
+            if (textures.Length == 0)
+            {
+                if (_shownTextures.Length != 0) ClearTextureGrid();
+                return;
+            }
+
+            var availableWidth = _textureArea.contentRect.width;
+            var availableHeight = _textureArea.contentRect.height;
+            if (float.IsNaN(availableWidth) || float.IsNaN(availableHeight) || availableWidth <= 0 || availableHeight <= 0) return; // Not laid out yet
+
+            int columns;
+            int rows;
+            if (textures.Length == 3)
+            {
+                columns = 3;
+                rows = 1;
+            }
+            else
+            {
+                columns = Mathf.CeilToInt(Mathf.Sqrt(textures.Length));
+                rows = 1 + (textures.Length - 1) / columns;
+            }
+
+            // The cells fill the whole area, with a gap between them but none on the right and bottom edges.
+            // The render textures have sizes that are multiples of 8, so they can be a few pixels smaller than the cells they are stretched into.
+            var actualWidth = Mathf.Max(16, Mathf.FloorToInt((availableWidth - CellGap * (columns - 1)) / columns));
+            var actualHeight = Mathf.Max(16, Mathf.FloorToInt((availableHeight - CellGap * (rows - 1)) / rows));
+            ProjectRenderQueue.Width(SanitizeTextureSize(actualWidth));
+            ProjectRenderQueue.Height(SanitizeTextureSize(actualHeight));
+
+            var unchanged = _shownCellWidth == actualWidth && _shownCellHeight == actualHeight && _shownTextures.Length == textures.Length;
+            if (unchanged)
+            {
+                for (var i = 0; i < textures.Length; i++)
+                {
+                    if (_shownTextures[i] != textures[i]) { unchanged = false; break; }
+                }
+            }
+            if (unchanged) return;
+
+            var names = ProjectRenderQueue.Names();
+            ClearTextureGrid();
+            _shownTextures = (Texture[]) textures.Clone();
+            _shownCellWidth = actualWidth;
+            _shownCellHeight = actualHeight;
+            for (var row = 0; row < rows; row++)
+            {
+                var rowElement = Row();
+                for (var k = row * columns; k < Math.Min(textures.Length, row * columns + columns); k++)
+                {
+                    // Not an Image: it would be tinted by the Play Mode tint of the editor, and the lightboxes must be shown in true colors.
+                    var cell = new LightboxViewerUntintedImage
+                    {
+                        texture = textures[k],
+                        tooltip = names[k],
+                        style =
+                        {
+                            width = actualWidth, height = actualHeight, flexShrink = 0,
+                            marginLeft = k > row * columns ? CellGap : 0, marginTop = row > 0 ? CellGap : 0,
+                            borderTopWidth = 1, borderBottomWidth = 1, borderLeftWidth = 1, borderRightWidth = 1,
+                            borderTopColor = new Color(0.15f, 0.15f, 0.15f), borderBottomColor = new Color(0.15f, 0.15f, 0.15f),
+                            borderLeftColor = new Color(0.15f, 0.15f, 0.15f), borderRightColor = new Color(0.15f, 0.15f, 0.15f)
+                        }
+                    };
+                    _cells.Add(cell);
+                    rowElement.Add(cell);
+                }
+                _textureGrid.Add(rowElement);
+            }
+        }
+
+        private void ClearTextureGrid()
+        {
+            _textureGrid.Clear();
+            _cells.Clear();
+            _shownTextures = new Texture[0];
+            _shownCellWidth = 0;
+            _shownCellHeight = 0;
+        }
+
+        /// The render textures were rendered again: their content changed, but not the texture objects.
+        private void MarkTexturesDirty()
+        {
+            foreach (var cell in _cells)
+            {
+                cell.MarkDirtyRepaint();
+            }
         }
 
         private int RemapAntiAliasing(int i)
@@ -520,26 +728,6 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 3 => 8,
                 _ => 1
             };
-        }
-
-        private static void PrefsToggle(string propName, bool value, Action<bool> setterFn, params GUILayoutOption[] options)
-        {
-            EditorGUI.BeginChangeCheck();
-            var newValue = EditorGUILayout.Toggle(new GUIContent(ObjectNames.NicifyVariableName(propName)), value, options);
-            if (EditorGUI.EndChangeCheck())
-            {
-                setterFn(newValue);
-            }
-        }
-
-        private static void PrefsSlider(string propName, float value, Action<float> setterFn, float leftValue, float rightValue)
-        {
-            EditorGUI.BeginChangeCheck();
-            var newValue = EditorGUILayout.Slider(new GUIContent(ObjectNames.NicifyVariableName(propName)), value, leftValue, rightValue);
-            if (EditorGUI.EndChangeCheck())
-            {
-                setterFn(newValue);
-            }
         }
 
         private void RestartPlayMode()
@@ -617,20 +805,6 @@ namespace Hai.LightboxViewer.Scripts.Editor
         private void UsingObjectToView(Transform newObjectToView)
         {
             this.objectToView = newObjectToView;
-        }
-
-        private static bool ColoredBgButton(bool isActive, Color bgColor, Func<bool> inside)
-        {
-            var col = GUI.backgroundColor;
-            try
-            {
-                if (isActive) GUI.backgroundColor = bgColor;
-                return inside();
-            }
-            finally
-            {
-                GUI.backgroundColor = col;
-            }
         }
 
         [MenuItem("Window/Haï/LightboxViewer")]
