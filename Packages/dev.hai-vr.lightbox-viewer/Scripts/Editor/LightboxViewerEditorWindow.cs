@@ -26,27 +26,19 @@ namespace Hai.LightboxViewer.Scripts.Editor
         private const string URPLightProbesSceneFolder = "5087027db2a433c47952becea6b721a4";
         private const string DepthEnablerAsset = "b5094f9d6061779489b1ead6865042b2";
         
-        private const string ActivateLightboxViewerLabel = "Activate LightboxViewer";
-        private const string AdvancedLabel = "Advanced";
-        private const string CollectionsLabel = "Collections";
-        private const string CounterRotateLabel = "Counter-rotate";
-        private const string DiscardLabel = "Discard";
-        private const string InstallPostProcessingLabel = "Install Post-processing";
-        private const string MsgInvalidLightboxScene = "Lightbox scene has no root GameObject named \"Lightboxes\", or it is empty.";
-        private const string MsgLightboxSceneModifiedPromptSave = "You have modified the lightbox scene.\nDo you want to save the lightbox scene?";
-        private const string MsgPlayModeRequiresPreActivation = "To use LightboxViewer in Play mode, activate it before entering Play mode.";
-        private const string MsgPostProcessingMissing = "Post-processing is missing from the project.\nInstall post-processing?";
-        private const string RealignLabel = "Realign";
-        private const string RenderingLabel = "Rendering";
-        private const string ResetLabel = "Reset";
-        private const string RestartPlayModeLabel = "Restart Play mode with LightboxViewer";
-        private const string SaveLabel = "Save";
         private const string LightboxViewerPrefsKey = "LightboxViewer.";
-        private const string NdmfPreviewLabel = "NDMF Preview";
-        private const string NdmfPreviewTooltip = "Render the result of NDMF Preview instead of the original object. Renderers whose bones are changed by the preview are rendered as they are in the scene.\n\n" +
-                                                  "Disabled: render the original object.\n" +
-                                                  "Slow updates: only render the complete result that NDMF Preview shows, and do not render while NDMF Preview computes a new result.\n" +
-                                                  "Aggressive updates: render the result as soon as it changes, which may show the object without the result for a few frames (e.g. while editing a material).";
+        private const string LocaleFolder = "Packages/dev.hai-vr.lightbox-viewer/Scripts/Editor/Locale";
+
+        private static HaiEFLoc localize
+        {
+            get
+            {
+                _localize ??= NewLoc();
+                return _localize;
+            }
+        }
+        private static HaiEFLoc _localize;
+        private static HaiEFLoc NewLoc() => new("dev.hai-vr.lightbox-viewer", LocaleFolder);
         private static readonly System.Collections.Generic.List<LightboxViewerNdmfPreviewMode> NdmfPreviewModes = new System.Collections.Generic.List<LightboxViewerNdmfPreviewMode>
         {
             LightboxViewerNdmfPreviewMode.Disabled,
@@ -57,12 +49,11 @@ namespace Hai.LightboxViewer.Scripts.Editor
         {
             switch (mode)
             {
-                case LightboxViewerNdmfPreviewMode.Disabled: return "Disabled";
-                case LightboxViewerNdmfPreviewMode.SlowUpdates: return "Slow updates";
-                default: return "Aggressive updates";
+                case LightboxViewerNdmfPreviewMode.Disabled: return localize.Text(Phrases.ndmf_preview_mode_disabled);
+                case LightboxViewerNdmfPreviewMode.SlowUpdates: return localize.Text(Phrases.ndmf_preview_mode_slow_updates);
+                default: return localize.Text(Phrases.ndmf_preview_mode_aggressive_updates);
             }
         }
-        private const string AntiAliasingLabel = "Anti-aliasing";
 
         public Transform objectToView;
         public Camera referenceCamera;
@@ -227,6 +218,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
         private void Update()
         {
+            RefreshLocalization();
             RefreshUI();
 
             if (!enabled) return;
@@ -319,6 +311,8 @@ namespace Hai.LightboxViewer.Scripts.Editor
             var root = rootVisualElement;
             root.Clear();
             _uiRoot = root;
+            titleContent = new GUIContent(localize.Text(Phrases.window_title));
+            _localizationSignature = LocalizationSignature();
 
             var scroll = new ScrollView();
             scroll.style.flexGrow = 1;
@@ -328,8 +322,8 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
             // Object and scene
             var objectRow = Row();
-            var objectField = new ObjectField("Object To View") { objectType = typeof(Transform), allowSceneObjects = true, bindingPath = nameof(objectToView) };
-            var sceneField = new ObjectField("Lightbox Scene") { objectType = typeof(SceneAsset), allowSceneObjects = false, bindingPath = nameof(lightboxScene) };
+            var objectField = new ObjectField(localize.Text(Phrases.object_to_view)) { objectType = typeof(Transform), allowSceneObjects = true, bindingPath = nameof(objectToView) };
+            var sceneField = new ObjectField(localize.Text(Phrases.lightbox_scene)) { objectType = typeof(SceneAsset), allowSceneObjects = false, bindingPath = nameof(lightboxScene) };
             Grow(objectField);
             Grow(sceneField);
             objectRow.Add(objectField);
@@ -339,10 +333,10 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
             // Camera roll
             var rollRow = Row();
-            var rollSlider = new Slider("Camera Roll", -1f, 1f) { showInputField = true, bindingPath = nameof(cameraRoll) };
+            var rollSlider = new Slider(localize.Text(Phrases.camera_roll), -1f, 1f) { showInputField = true, bindingPath = nameof(cameraRoll) };
             rollSlider.style.flexGrow = 1;
             rollRow.Add(rollSlider);
-            var counterRotateLabel = new Label(CounterRotateLabel) { style = { width = 100, unityTextAlign = TextAnchor.MiddleLeft } };
+            var counterRotateLabel = new Label(localize.Text(Phrases.counter_rotate)) { style = { width = 100, unityTextAlign = TextAnchor.MiddleLeft } };
             rollRow.Add(counterRotateLabel);
             _counterRotateToggle = new Toggle { style = { width = EditorGUIUtility.singleLineHeight } }; // No label
             _counterRotateToggle.RegisterValueChangedCallback(e => CounterRotate = e.newValue);
@@ -352,43 +346,43 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 _so.Update();
                 _so.FindProperty(nameof(cameraRoll)).floatValue = 0;
                 _so.ApplyModifiedProperties();
-            }) { text = ResetLabel, style = { width = 150 } };
+            }) { text = localize.Text(Phrases.reset), style = { width = 150 } };
             rollRow.Add(_rollResetButton);
             content.Add(rollRow);
 
             // Activation
             _activateRow = Row();
-            _activateButton = new Button(ToggleLightboxViewer) { text = ActivateLightboxViewerLabel };
+            _activateButton = new Button(ToggleLightboxViewer) { text = localize.Text(Phrases.activate) };
             Grow(_activateButton);
             _activateRow.Add(_activateButton);
             content.Add(_activateRow);
 
             _playModeRow = Row();
-            var playModeHelp = new HelpBox(MsgPlayModeRequiresPreActivation, HelpBoxMessageType.Warning);
+            var playModeHelp = new HelpBox(localize.Text(Phrases.msg_play_mode_requires_pre_activation), HelpBoxMessageType.Warning);
             Grow(playModeHelp);
             _playModeRow.Add(playModeHelp);
             _playModeRow.Add(new Button(() =>
             {
                 EditorApplication.isPlaying = false;
                 EditorApplication.delayCall += RestartPlayMode;
-            }) { text = RestartPlayModeLabel, style = { width = Length.Percent(50), height = EditorGUIUtility.singleLineHeight * 2 } });
+            }) { text = localize.Text(Phrases.restart_play_mode), style = { width = Length.Percent(50), height = EditorGUIUtility.singleLineHeight * 2 } });
             content.Add(_playModeRow);
 
             _modifiedRow = Row();
-            _modifiedActivateButton = new Button { text = ActivateLightboxViewerLabel, style = { height = EditorGUIUtility.singleLineHeight * 2 } };
+            _modifiedActivateButton = new Button { text = localize.Text(Phrases.activate), style = { height = EditorGUIUtility.singleLineHeight * 2 } };
             _modifiedActivateButton.SetEnabled(false);
             Grow(_modifiedActivateButton);
             _modifiedRow.Add(_modifiedActivateButton);
-            var modifiedHelp = new HelpBox(MsgLightboxSceneModifiedPromptSave, HelpBoxMessageType.Warning);
+            var modifiedHelp = new HelpBox(localize.Text(Phrases.msg_lightbox_scene_modified), HelpBoxMessageType.Warning);
             Grow(modifiedHelp);
             _modifiedRow.Add(modifiedHelp);
-            _modifiedRow.Add(new Button(() => ProjectRenderQueue.SaveLightbox()) { text = SaveLabel, style = { width = 100, height = EditorGUIUtility.singleLineHeight * 2 } });
-            _modifiedRow.Add(new Button(Disable) { text = DiscardLabel, style = { width = 100, height = EditorGUIUtility.singleLineHeight * 2 } });
+            _modifiedRow.Add(new Button(() => ProjectRenderQueue.SaveLightbox()) { text = localize.Text(Phrases.save), style = { width = 100, height = EditorGUIUtility.singleLineHeight * 2 } });
+            _modifiedRow.Add(new Button(Disable) { text = localize.Text(Phrases.discard), style = { width = 100, height = EditorGUIUtility.singleLineHeight * 2 } });
             content.Add(_modifiedRow);
 
             // Advanced
             var advancedRow = Row();
-            _advancedFoldout = new Foldout { text = AdvancedLabel, value = advanced };
+            _advancedFoldout = new Foldout { text = localize.Text(Phrases.advanced), value = advanced };
             _advancedFoldout.style.flexGrow = 1;
             _advancedFoldout.RegisterValueChangedCallback(e =>
             {
@@ -396,21 +390,21 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 advanced = e.newValue;
             });
             advancedRow.Add(_advancedFoldout);
-            _collapsedPostProcessingToggle = new Toggle { text = ObjectNames.NicifyVariableName(nameof(PostProcessing)) };
+            _collapsedPostProcessingToggle = new Toggle { text = localize.Text(Phrases.post_processing) };
             _collapsedPostProcessingToggle.RegisterValueChangedCallback(e => PostProcessing = e.newValue);
             advancedRow.Add(_collapsedPostProcessingToggle);
             content.Add(advancedRow);
 
 
             _postProcessingMissingRow = Row();
-            var postProcessingHelp = new HelpBox(MsgPostProcessingMissing, HelpBoxMessageType.Warning);
+            var postProcessingHelp = new HelpBox(localize.Text(Phrases.msg_post_processing_missing), HelpBoxMessageType.Warning);
             Grow(postProcessingHelp);
             _postProcessingMissingRow.Add(postProcessingHelp);
             _installPostProcessingButton = new Button(() =>
             {
                 _ppInstall = true;
                 Client.Add("com.unity.postprocessing");
-            }) { text = InstallPostProcessingLabel, style = { width = 200, height = EditorGUIUtility.singleLineHeight * 2 } };
+            }) { text = localize.Text(Phrases.install_post_processing), style = { width = 200, height = EditorGUIUtility.singleLineHeight * 2 } };
             _postProcessingMissingRow.Add(_installPostProcessingButton);
             content.Add(_postProcessingMissingRow);
 
@@ -422,18 +416,18 @@ namespace Hai.LightboxViewer.Scripts.Editor
             _sidebar = new VisualElement { style = { width = SidebarWidth, flexShrink = 0 } };
             mainRow.Add(_sidebar);
             // Same style as Anti-aliasing: a label above a slider, without the value.
-            _sidebar.Add(new Label(ObjectNames.NicifyVariableName(nameof(VerticalDisplacement))));
+            _sidebar.Add(new Label(localize.Text(Phrases.vertical_displacement)));
             _verticalDisplacementSlider = new Slider(0f, 2f);
             _verticalDisplacementSlider.RegisterValueChangedCallback(e => VerticalDisplacement = e.newValue);
             _sidebar.Add(_verticalDisplacementSlider);
-            _sidebar.Add(new Label(RenderingLabel) { style = { unityFontStyleAndWeight = FontStyle.Bold } });
-            _postProcessingToggle = PrefsToggle(nameof(PostProcessing), newValue => PostProcessing = newValue);
-            _muteLightsToggle = PrefsToggle(nameof(MuteLightsInsideObject), newValue => MuteLightsInsideObject = newValue);
-            _depthTextureToggle = PrefsToggle(nameof(SupportDepthTexture), newValue => SupportDepthTexture = newValue);
-            _alwaysRefreshToggle = PrefsToggle(nameof(AlwaysRefresh), newValue => AlwaysRefresh = newValue);
+            _sidebar.Add(new Label(localize.Text(Phrases.rendering)) { style = { unityFontStyleAndWeight = FontStyle.Bold } });
+            _postProcessingToggle = PrefsToggle(Phrases.post_processing, newValue => PostProcessing = newValue);
+            _muteLightsToggle = PrefsToggle(Phrases.mute_lights_inside_object, newValue => MuteLightsInsideObject = newValue);
+            _depthTextureToggle = PrefsToggle(Phrases.support_depth_texture, newValue => SupportDepthTexture = newValue);
+            _alwaysRefreshToggle = PrefsToggle(Phrases.always_refresh, newValue => AlwaysRefresh = newValue);
             // Same style as Anti-aliasing: a label above the field.
-            _ndmfPreviewGroup = new VisualElement { tooltip = NdmfPreviewTooltip };
-            _ndmfPreviewGroup.Add(new Label(NdmfPreviewLabel));
+            _ndmfPreviewGroup = new VisualElement { tooltip = localize.Text(Phrases.ndmf_preview_tooltip) };
+            _ndmfPreviewGroup.Add(new Label(localize.Text(Phrases.ndmf_preview)));
             _ndmfPreviewPopup = new PopupField<LightboxViewerNdmfPreviewMode>(NdmfPreviewModes, NdmfPreviewMode, NdmfPreviewModeName, NdmfPreviewModeName);
             _ndmfPreviewPopup.RegisterValueChangedCallback(e => NdmfPreviewMode = e.newValue);
             _ndmfPreviewGroup.Add(_ndmfPreviewPopup);
@@ -443,13 +437,13 @@ namespace Hai.LightboxViewer.Scripts.Editor
             _antiAliasingSlider = new SliderInt(0, 3);
             _antiAliasingSlider.RegisterValueChangedCallback(e => AntiAliasingSlider = e.newValue);
             _sidebar.Add(_antiAliasingSlider);
-            var referenceCameraField = new ObjectField("Reference Camera") { objectType = typeof(Camera), allowSceneObjects = true, bindingPath = nameof(referenceCamera) };
+            var referenceCameraField = new ObjectField(localize.Text(Phrases.reference_camera)) { objectType = typeof(Camera), allowSceneObjects = true, bindingPath = nameof(referenceCamera) };
             _sidebar.Add(referenceCameraField);
-            _realignButton = new Button(Realign) { text = RealignLabel };
+            _realignButton = new Button(Realign) { text = localize.Text(Phrases.realign) };
             _sidebar.Add(_realignButton);
 
             _collectionsContainer = new VisualElement { style = { marginTop = 6 } };
-            _collectionsContainer.Add(new Label(CollectionsLabel) { style = { unityFontStyleAndWeight = FontStyle.Bold } });
+            _collectionsContainer.Add(new Label(localize.Text(Phrases.collections)) { style = { unityFontStyleAndWeight = FontStyle.Bold } });
             _collectionsList = new VisualElement();
             _collectionsContainer.Add(_collectionsList);
             _sidebar.Add(_collectionsContainer);
@@ -457,7 +451,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
             _textureArea = new VisualElement { style = { flexGrow = 1, flexBasis = 0, overflow = Overflow.Hidden } };
             _textureGrid = new VisualElement();
             _textureArea.Add(_textureGrid);
-            _invalidSceneHelpBox = new HelpBox(MsgInvalidLightboxScene, HelpBoxMessageType.Error);
+            _invalidSceneHelpBox = new HelpBox(localize.Text(Phrases.msg_invalid_lightbox_scene), HelpBoxMessageType.Error);
             _textureArea.Add(_invalidSceneHelpBox);
             mainRow.Add(_textureArea);
 
@@ -470,6 +464,9 @@ namespace Hai.LightboxViewer.Scripts.Editor
             sceneField.style.minWidth = 0;
             rollSlider.style.minWidth = 0;
             scroll.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
+
+            // The language selector is shared with the other tools that use HaiEFLoc, and is drawn with IMGUI.
+            content.Add(new IMGUIContainer(() => localize.Selector(() => _localize = NewLoc())));
 
             root.Bind(_so);
             RefreshUI();
@@ -488,10 +485,10 @@ namespace Hai.LightboxViewer.Scripts.Editor
             element.style.flexBasis = 0;
         }
 
-        private Toggle PrefsToggle(string propName, Action<bool> setterFn)
+        private Toggle PrefsToggle(string phrase, Action<bool> setterFn)
         {
             // Checkbox on the left and text on its right, like the Collections toggles.
-            var toggle = new Toggle { text = ObjectNames.NicifyVariableName(propName) };
+            var toggle = new Toggle { text = localize.Text(phrase) };
             toggle.RegisterValueChangedCallback(e => setterFn(e.newValue));
             _sidebar.Add(toggle);
             return toggle;
@@ -566,7 +563,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
             SetValue(_ndmfPreviewPopup, NdmfPreviewMode);
             SetValue(_alwaysRefreshToggle, AlwaysRefresh);
             var aaSlider = AntiAliasingSlider;
-            var antiAliasingText = $"{AntiAliasingLabel} ({RemapAntiAliasing(aaSlider)})";
+            var antiAliasingText = $"{localize.Text(Phrases.anti_aliasing)} ({RemapAntiAliasing(aaSlider)})";
             if (_antiAliasingLabel.text != antiAliasingText) _antiAliasingLabel.text = antiAliasingText;
             SetValue(_antiAliasingSlider, aaSlider);
             Enable(_realignButton, enabled);
@@ -826,6 +823,33 @@ namespace Hai.LightboxViewer.Scripts.Editor
             var editor = GetWindow<LightboxViewerEditorWindow>(false, null, false);
             editor.titleContent = new GUIContent("LightboxViewer");
             return editor;
+        }
+
+        private int _localizationSignature;
+
+        /// The UI is built once, so it is built again when the language changes: from the selector of this window, from the selector of
+        /// another tool that shares the same language preference, or when the localization files are reloaded with the refresh button.
+        private void RefreshLocalization()
+        {
+            localize.RefreshIfNecessary();
+            if (_uiRoot == null) return;
+            if (LocalizationSignature() != _localizationSignature) CreateGUI();
+        }
+
+        private static readonly string[] AllPhrases = typeof(Phrases)
+            .GetFields(BindingFlags.Public | BindingFlags.Static)
+            .Where(field => field.IsLiteral)
+            .Select(field => (string)field.GetRawConstantValue())
+            .ToArray();
+
+        private static int LocalizationSignature()
+        {
+            var signature = 17;
+            foreach (var phrase in AllPhrases)
+            {
+                signature = signature * 31 + localize.Text(phrase).GetHashCode();
+            }
+            return signature;
         }
 
         private static Action _repaint;

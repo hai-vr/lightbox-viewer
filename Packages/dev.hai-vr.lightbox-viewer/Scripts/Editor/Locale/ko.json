@@ -1,0 +1,44 @@
+{
+    "_meta": {
+        "language": "ko",
+        "name": "한국어",
+        "variant": "claude-opus-5-5",
+        "prompt": "When requested to translate a localization file, follow the rules in this prompt. _meta.prompt must not be changed. _meta.name must be in the requested language, not English. For example, it should be 日本語 in the Japanese language. _meta.variant must be the model used, for example GPT-5 or Gemini 3; of course, substitute with the LLM model in use. The words Unity, GameObject, NDMF, NDMF Preview, and LightboxViewer are technical terms so they must remain in English."
+    },
+    "dev.hai-vr.lightbox-viewer": {
+        "phrases": {
+            "window_title": "LightboxViewer",
+            "object_to_view": "표시할 오브젝트",
+            "lightbox_scene": "라이트박스 씬",
+            "camera_roll": "카메라 롤",
+            "counter_rotate": "역회전",
+            "reset": "초기화",
+            "activate": "LightboxViewer 활성화",
+            "msg_play_mode_requires_pre_activation": "플레이 모드에서 LightboxViewer를 사용하려면 플레이 모드에 들어가기 전에 활성화하세요.",
+            "restart_play_mode": "LightboxViewer와 함께 플레이 모드 다시 시작",
+            "msg_lightbox_scene_modified": "라이트박스 씬을 수정했습니다.\n라이트박스 씬을 저장하시겠습니까?",
+            "save": "저장",
+            "discard": "버리기",
+            "advanced": "고급",
+            "msg_post_processing_missing": "프로젝트에 포스트 프로세싱이 없습니다.\n포스트 프로세싱을 설치하시겠습니까?",
+            "install_post_processing": "포스트 프로세싱 설치",
+            "vertical_displacement": "수직 오프셋",
+            "rendering": "렌더링",
+            "post_processing": "포스트 프로세싱",
+            "mute_lights_inside_object": "오브젝트 내부 조명 끄기",
+            "support_depth_texture": "깊이 텍스처 지원",
+            "ndmf_preview": "NDMF Preview",
+            "ndmf_preview_tooltip": "원본 오브젝트 대신 NDMF Preview의 결과를 렌더링합니다. 프리뷰에 의해 본이 변경된 렌더러는 씬에 있는 그대로 렌더링됩니다.\n\n비활성화: 원본 오브젝트를 렌더링합니다.\n느린 업데이트: NDMF Preview가 표시하는 완성된 결과만 렌더링하며, NDMF Preview가 새 결과를 계산하는 동안에는 렌더링하지 않습니다.\n적극적인 업데이트: 결과가 바뀌는 즉시 렌더링하며, 이로 인해 몇 프레임 동안 결과가 적용되지 않은 오브젝트가 보일 수 있습니다(예: 머티리얼을 편집하는 중).",
+            "ndmf_preview_mode_disabled": "비활성화",
+            "ndmf_preview_mode_slow_updates": "느린 업데이트",
+            "ndmf_preview_mode_aggressive_updates": "적극적인 업데이트",
+            "always_refresh": "매 프레임마다 새로 고침",
+            "anti_aliasing": "안티에일리어싱",
+            "reference_camera": "참조 카메라",
+            "realign": "다시 정렬",
+            "collections": "컬렉션",
+            "msg_invalid_lightbox_scene": "라이트박스 씬에 \"Lightboxes\"라는 이름의 루트 GameObject가 없거나 비어 있습니다."
+        },
+        "enums": {}
+    }
+}

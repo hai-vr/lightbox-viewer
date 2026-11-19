@@ -1,0 +1,44 @@
+{
+    "_meta": {
+        "language": "en",
+        "name": "English",
+        "variant": "",
+        "prompt": "When requested to translate a localization file, follow the rules in this prompt. _meta.prompt must not be changed. _meta.name must be in the requested language, not English. For example, it should be 日本語 in the Japanese language. _meta.variant must be the model used, for example GPT-5 or Gemini 3; of course, substitute with the LLM model in use. The words Unity, GameObject, NDMF, NDMF Preview, and LightboxViewer are technical terms so they must remain in English."
+    },
+    "dev.hai-vr.lightbox-viewer": {
+        "phrases": {
+            "window_title": "LightboxViewer",
+            "object_to_view": "Object To View",
+            "lightbox_scene": "Lightbox Scene",
+            "camera_roll": "Camera Roll",
+            "counter_rotate": "Counter-rotate",
+            "reset": "Reset",
+            "activate": "Activate LightboxViewer",
+            "msg_play_mode_requires_pre_activation": "To use LightboxViewer in Play mode, activate it before entering Play mode.",
+            "restart_play_mode": "Restart Play mode with LightboxViewer",
+            "msg_lightbox_scene_modified": "You have modified the lightbox scene.\nDo you want to save the lightbox scene?",
+            "save": "Save",
+            "discard": "Discard",
+            "advanced": "Advanced",
+            "msg_post_processing_missing": "Post-processing is missing from the project.\nInstall post-processing?",
+            "install_post_processing": "Install Post-processing",
+            "vertical_displacement": "Vertical Displacement",
+            "rendering": "Rendering",
+            "post_processing": "Post Processing",
+            "mute_lights_inside_object": "Mute Lights Inside Object",
+            "support_depth_texture": "Support Depth Texture",
+            "ndmf_preview": "NDMF Preview",
+            "ndmf_preview_tooltip": "Render the result of NDMF Preview instead of the original object. Renderers whose bones are changed by the preview are rendered as they are in the scene.\n\nDisabled: render the original object.\nSlow updates: only render the complete result that NDMF Preview shows, and do not render while NDMF Preview computes a new result.\nAggressive updates: render the result as soon as it changes, which may show the object without the result for a few frames (e.g. while editing a material).",
+            "ndmf_preview_mode_disabled": "Disabled",
+            "ndmf_preview_mode_slow_updates": "Slow updates",
+            "ndmf_preview_mode_aggressive_updates": "Aggressive updates",
+            "always_refresh": "Refresh every frame",
+            "anti_aliasing": "Anti-aliasing",
+            "reference_camera": "Reference Camera",
+            "realign": "Realign",
+            "collections": "Collections",
+            "msg_invalid_lightbox_scene": "Lightbox scene has no root GameObject named \"Lightboxes\", or it is empty."
+        },
+        "enums": {}
+    }
+}

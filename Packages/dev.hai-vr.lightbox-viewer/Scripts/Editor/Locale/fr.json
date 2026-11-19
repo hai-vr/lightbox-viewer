@@ -1,0 +1,44 @@
+{
+    "_meta": {
+        "language": "fr",
+        "name": "Français",
+        "variant": "claude-opus-5-5",
+        "prompt": "When requested to translate a localization file, follow the rules in this prompt. _meta.prompt must not be changed. _meta.name must be in the requested language, not English. For example, it should be 日本語 in the Japanese language. _meta.variant must be the model used, for example GPT-5 or Gemini 3; of course, substitute with the LLM model in use. The words Unity, GameObject, NDMF, NDMF Preview, and LightboxViewer are technical terms so they must remain in English."
+    },
+    "dev.hai-vr.lightbox-viewer": {
+        "phrases": {
+            "window_title": "LightboxViewer",
+            "object_to_view": "Objet à visualiser",
+            "lightbox_scene": "Scène lightbox",
+            "camera_roll": "Roulis de la caméra",
+            "counter_rotate": "Contre-rotation",
+            "reset": "Réinitialiser",
+            "activate": "Activer LightboxViewer",
+            "msg_play_mode_requires_pre_activation": "Pour utiliser LightboxViewer en mode Play, activez-le avant d'entrer en mode Play.",
+            "restart_play_mode": "Redémarrer le mode Play avec LightboxViewer",
+            "msg_lightbox_scene_modified": "Vous avez modifié la scène lightbox.\nVoulez-vous enregistrer la scène lightbox ?",
+            "save": "Enregistrer",
+            "discard": "Abandonner",
+            "advanced": "Avancé",
+            "msg_post_processing_missing": "Le post-processing est absent du projet.\nInstaller le post-processing ?",
+            "install_post_processing": "Installer le post-processing",
+            "vertical_displacement": "Décalage vertical",
+            "rendering": "Rendu",
+            "post_processing": "Post-processing",
+            "mute_lights_inside_object": "Éteindre les lumières dans l'objet",
+            "support_depth_texture": "Prendre en charge la texture de profondeur",
+            "ndmf_preview": "NDMF Preview",
+            "ndmf_preview_tooltip": "Afficher le résultat de NDMF Preview au lieu de l'objet d'origine. Les renderers dont les os sont modifiés par la prévisualisation sont affichés tels qu'ils sont dans la scène.\n\nDésactivé : afficher l'objet d'origine.\nMises à jour lentes : n'afficher que le résultat complet montré par NDMF Preview, et ne rien afficher pendant que NDMF Preview calcule un nouveau résultat.\nMises à jour agressives : afficher le résultat dès qu'il change, ce qui peut montrer l'objet sans le résultat pendant quelques images (par exemple pendant l'édition d'un matériau).",
+            "ndmf_preview_mode_disabled": "Désactivé",
+            "ndmf_preview_mode_slow_updates": "Mises à jour lentes",
+            "ndmf_preview_mode_aggressive_updates": "Mises à jour agressives",
+            "always_refresh": "Rafraîchir à chaque frame",
+            "anti_aliasing": "Anticrénelage",
+            "reference_camera": "Caméra de référence",
+            "realign": "Réaligner",
+            "collections": "Collections",
+            "msg_invalid_lightbox_scene": "La scène lightbox n'a pas de GameObject racine nommé \"Lightboxes\", ou il est vide."
+        },
+        "enums": {}
+    }
+}

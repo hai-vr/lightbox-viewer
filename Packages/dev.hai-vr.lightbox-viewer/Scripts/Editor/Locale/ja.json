@@ -1,0 +1,44 @@
+{
+    "_meta": {
+        "language": "ja",
+        "name": "日本語",
+        "variant": "claude-opus-5-5",
+        "prompt": "When requested to translate a localization file, follow the rules in this prompt. _meta.prompt must not be changed. _meta.name must be in the requested language, not English. For example, it should be 日本語 in the Japanese language. _meta.variant must be the model used, for example GPT-5 or Gemini 3; of course, substitute with the LLM model in use. The words Unity, GameObject, NDMF, NDMF Preview, and LightboxViewer are technical terms so they must remain in English."
+    },
+    "dev.hai-vr.lightbox-viewer": {
+        "phrases": {
+            "window_title": "LightboxViewer",
+            "object_to_view": "表示するオブジェクト",
+            "lightbox_scene": "ライトボックスシーン",
+            "camera_roll": "カメラのロール",
+            "counter_rotate": "逆回転",
+            "reset": "リセット",
+            "activate": "LightboxViewer を有効化",
+            "msg_play_mode_requires_pre_activation": "再生モードで LightboxViewer を使用するには、再生モードに入る前に有効化してください。",
+            "restart_play_mode": "LightboxViewer を有効にして再生モードを再開",
+            "msg_lightbox_scene_modified": "ライトボックスシーンが変更されました。\nライトボックスシーンを保存しますか？",
+            "save": "保存",
+            "discard": "破棄",
+            "advanced": "詳細設定",
+            "msg_post_processing_missing": "プロジェクトにポストプロセスがありません。\nポストプロセスをインストールしますか？",
+            "install_post_processing": "ポストプロセスをインストール",
+            "vertical_displacement": "垂直方向のオフセット",
+            "rendering": "レンダリング",
+            "post_processing": "ポストプロセス",
+            "mute_lights_inside_object": "オブジェクト内のライトを消す",
+            "support_depth_texture": "深度テクスチャに対応",
+            "ndmf_preview": "NDMF Preview",
+            "ndmf_preview_tooltip": "元のオブジェクトの代わりに NDMF Preview の結果を描画します。プレビューによってボーンが変更されたレンダラーは、シーン内の状態のまま描画されます。\n\n無効：元のオブジェクトを描画します。\n低頻度の更新：NDMF Preview が表示している完成した結果のみを描画し、NDMF Preview が新しい結果を計算している間は描画しません。\n積極的な更新：結果が変わり次第すぐに描画します。そのため、数フレームの間、結果が反映されていないオブジェクトが表示されることがあります（例：マテリアルの編集中）。",
+            "ndmf_preview_mode_disabled": "無効",
+            "ndmf_preview_mode_slow_updates": "低頻度の更新",
+            "ndmf_preview_mode_aggressive_updates": "積極的な更新",
+            "always_refresh": "毎フレーム更新",
+            "anti_aliasing": "アンチエイリアス",
+            "reference_camera": "参照カメラ",
+            "realign": "再調整",
+            "collections": "コレクション",
+            "msg_invalid_lightbox_scene": "ライトボックスシーンに \"Lightboxes\" という名前のルート GameObject がないか、空です。"
+        },
+        "enums": {}
+    }
+}

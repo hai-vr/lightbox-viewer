@@ -1,0 +1,44 @@
+{
+    "_meta": {
+        "language": "zh-cn",
+        "name": "简体中文",
+        "variant": "claude-opus-5-5",
+        "prompt": "When requested to translate a localization file, follow the rules in this prompt. _meta.prompt must not be changed. _meta.name must be in the requested language, not English. For example, it should be 日本語 in the Japanese language. _meta.variant must be the model used, for example GPT-5 or Gemini 3; of course, substitute with the LLM model in use. The words Unity, GameObject, NDMF, NDMF Preview, and LightboxViewer are technical terms so they must remain in English."
+    },
+    "dev.hai-vr.lightbox-viewer": {
+        "phrases": {
+            "window_title": "LightboxViewer",
+            "object_to_view": "要查看的对象",
+            "lightbox_scene": "灯箱场景",
+            "camera_roll": "相机滚转",
+            "counter_rotate": "反向旋转",
+            "reset": "重置",
+            "activate": "启用 LightboxViewer",
+            "msg_play_mode_requires_pre_activation": "要在播放模式下使用 LightboxViewer，请在进入播放模式之前启用它。",
+            "restart_play_mode": "启用 LightboxViewer 并重新启动播放模式",
+            "msg_lightbox_scene_modified": "你已修改灯箱场景。\n是否保存灯箱场景？",
+            "save": "保存",
+            "discard": "放弃",
+            "advanced": "高级",
+            "msg_post_processing_missing": "项目中缺少后处理。\n是否安装后处理？",
+            "install_post_processing": "安装后处理",
+            "vertical_displacement": "垂直偏移",
+            "rendering": "渲染",
+            "post_processing": "后处理",
+            "mute_lights_inside_object": "关闭对象内部的灯光",
+            "support_depth_texture": "支持深度纹理",
+            "ndmf_preview": "NDMF Preview",
+            "ndmf_preview_tooltip": "渲染 NDMF Preview 的结果，而不是原始对象。骨骼被预览更改的渲染器将按其在场景中的状态渲染。\n\n禁用：渲染原始对象。\n慢速更新：只渲染 NDMF Preview 显示的完整结果，并且在 NDMF Preview 计算新结果期间不进行渲染。\n积极更新：结果一变化就立即渲染，这可能会在几帧内显示没有结果的对象（例如在编辑材质时）。",
+            "ndmf_preview_mode_disabled": "禁用",
+            "ndmf_preview_mode_slow_updates": "慢速更新",
+            "ndmf_preview_mode_aggressive_updates": "积极更新",
+            "always_refresh": "每帧刷新",
+            "anti_aliasing": "抗锯齿",
+            "reference_camera": "参考相机",
+            "realign": "重新对齐",
+            "collections": "集合",
+            "msg_invalid_lightbox_scene": "灯箱场景中没有名为 \"Lightboxes\" 的根 GameObject，或者它是空的。"
+        },
+        "enums": {}
+    }
+}

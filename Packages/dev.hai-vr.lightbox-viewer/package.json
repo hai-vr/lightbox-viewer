@@ -7,6 +7,9 @@
   "author" : {
     "name" : "Haï~"
   },
+  "dependencies": {
+    "com.unity.nuget.newtonsoft-json": "3.2.1"
+  },
   "vpmDependencies": {
   },
   "legacyFolders" : {
