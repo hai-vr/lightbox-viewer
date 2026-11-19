@@ -3,6 +3,7 @@ using System.Linq;
 using System.Reflection;
 using Hai.LightboxViewer.Scripts.Runtime;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEditor.UIElements;
 using UnityEditor.PackageManager;
 using UnityEngine;
@@ -21,7 +22,10 @@ namespace Hai.LightboxViewer.Scripts.Editor
     public class LightboxViewerEditorWindow : EditorWindow
     {
         private const string BIRPLightProbesSceneFolder = "1cef314dbf6e7814a8f2867c36e87835";
+        // VRC Light Volumes 3.0.0 or later. The baked data of the two REDSIM scenes are separate (each scene has its own folder).
         private const string BIRPREDSIMSceneFolder = "1344adbf490e06446bc631910cf2c56d";
+        // VRC Light Volumes before 3.0.0 (the scene was baked with 2.1.3).
+        private const string BIRPREDSIMLegacySceneFolder = "36999f0387aa42d5af7b9a74e010a2ac";
         private const string URPAdaptiveProbeVolumesSceneFolder = "785caa78655b9d341aa02f92ba43e800";
         private const string URPLightProbesSceneFolder = "5087027db2a433c47952becea6b721a4";
         private const string DepthEnablerAsset = "b5094f9d6061779489b1ead6865042b2";
@@ -120,6 +124,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
         private bool _isBuiltInRenderPipeline;
         private bool _isUsingLightProbes;
         private bool _isREDSIMAvailable;
+        private bool _isREDSIM3OrLater;
 
         public LightboxViewerEditorWindow()
         {
@@ -149,6 +154,61 @@ namespace Hai.LightboxViewer.Scripts.Editor
                     lightboxScene = AssetDatabase.LoadAssetAtPath<SceneAsset>($"{path}.unity");
                 }
             }
+            else
+            {
+                SwapREDSIMSceneIfItDoesNotMatchTheInstalledVersion();
+            }
+
+            // The package information may not be up to date yet when the scripts are reloaded after a package update, so check again afterwards.
+            // (The version of VRC Light Volumes is read at runtime on purpose, see ReadREDSIMVersion.)
+            UnityEditor.PackageManager.Events.registeredPackages += OnRegisteredPackages;
+            EditorApplication.delayCall += RecheckREDSIMScene;
+        }
+
+        private void OnRegisteredPackages(UnityEditor.PackageManager.PackageRegistrationEventArgs args) => RecheckREDSIMScene();
+
+        private void RecheckREDSIMScene()
+        {
+            if (this == null) return;
+            ReevaluateRenderPipelineSettings();
+            SwapREDSIMSceneIfItDoesNotMatchTheInstalledVersion();
+        }
+
+        /// The window can stay open while the VRC Light Volumes package is updated (OnEnable is called again when the scripts are reloaded).
+        /// If the Lightbox scene is the one of the other generation of VRC Light Volumes, switch to the one that matches the installed version.
+        /// The installed version cannot come from the version defines of the asmdef, see ReadREDSIMVersion.
+        private void SwapREDSIMSceneIfItDoesNotMatchTheInstalledVersion()
+        {
+            if (lightboxScene == null || !_isREDSIMAvailable) return;
+
+            var current = AssetDatabase.GetAssetPath(lightboxScene);
+            var from3OrLater = AssetDatabase.GUIDToAssetPath(BIRPREDSIMSceneFolder) + ".unity";
+            var beforeV3 = AssetDatabase.GUIDToAssetPath(BIRPREDSIMLegacySceneFolder) + ".unity";
+
+            string targetPath = null;
+            if (!_isREDSIM3OrLater && current == from3OrLater) targetPath = beforeV3;
+            else if (_isREDSIM3OrLater && current == beforeV3) targetPath = from3OrLater;
+            if (targetPath == null) return;
+
+            var target = AssetDatabase.LoadAssetAtPath<SceneAsset>(targetPath);
+            if (target == null) return;
+
+            var reactivate = enabled && !Application.isPlaying && objectToView != null;
+            if (reactivate)
+            {
+                // The scripts were reloaded, so the render queue no longer knows that it opened the Lightbox scene: close it here.
+                var openScene = SceneManager.GetSceneByPath(current);
+                if (openScene.isLoaded)
+                {
+                    using (LightboxViewerNdmfPreview.SuppressSceneInvalidation())
+                    {
+                        EditorSceneManager.CloseScene(openScene, true);
+                    }
+                }
+                Disable();
+            }
+            lightboxScene = target;
+            if (reactivate) Enable();
         }
 
         private void OnQualityLevelChanged(int arg1, int arg2)
@@ -176,7 +236,8 @@ namespace Hai.LightboxViewer.Scripts.Editor
             string sceneToUse;
             if (_isBuiltInRenderPipeline)
             {
-                sceneToUse = _isREDSIMAvailable ? BIRPREDSIMSceneFolder : BIRPLightProbesSceneFolder;
+                if (!_isREDSIMAvailable) sceneToUse = BIRPLightProbesSceneFolder;
+                else sceneToUse = _isREDSIM3OrLater ? BIRPREDSIMSceneFolder : BIRPREDSIMLegacySceneFolder;
             }
             else
             {
@@ -209,11 +270,45 @@ namespace Hai.LightboxViewer.Scripts.Editor
                 _isUsingLightProbes = true;
             }
             
-#if LIGHTBOXVIEWER_REDSIM_SUPPORTED
-            _isREDSIMAvailable = true;
-#else
-            _isREDSIMAvailable = false;
-#endif
+            ReadREDSIMVersion(out _isREDSIMAvailable, out _isREDSIM3OrLater);
+        }
+
+        private const string REDSIMPackageName = "red.sim.lightvolumes";
+
+        /// Reads the installed version of VRC Light Volumes when it is called.
+        ///
+        /// Do NOT replace this with a versionDefines entry of the asmdef (like LIGHTBOXVIEWER_URP_APV_SUPPORTED): the version of VRC Light Volumes
+        /// can change while the Unity Editor is open (the user updates the package), and Unity does not compile this assembly again when only the
+        /// version of a package that it has a versionDefines entry for changes. Its defines then keep describing the previous version, and the
+        /// Lightbox scene would not be switched to the one that matches the new version.
+        /// This was checked by replacing the package files of VRC Light Volumes 2.1.3 by those of 3.0.1 while the editor was running: after the
+        /// scripts were reloaded, PackageInfo reported 3.0.1, but LightboxViewer.dll was not compiled again, and the version define still
+        /// said that it was before 3.0.0.
+        private static void ReadREDSIMVersion(out bool available, out bool is3OrLater)
+        {
+            available = false;
+            is3OrLater = false;
+
+            var info = UnityEditor.PackageManager.PackageInfo.FindForAssetPath($"Packages/{REDSIMPackageName}/package.json");
+            if (info == null || info.name != REDSIMPackageName)
+            {
+                info = null;
+                foreach (var candidate in UnityEditor.PackageManager.PackageInfo.GetAllRegisteredPackages())
+                {
+                    if (candidate.name == REDSIMPackageName) { info = candidate; break; }
+                }
+            }
+            if (info == null) return;
+
+            // Same rules as the version defines: a pre-release version (e.g. 3.0.0-dev.5) is before its release version.
+            var text = info.version;
+            var dash = text.IndexOf('-');
+            var isPreRelease = dash >= 0;
+            if (!System.Version.TryParse(isPreRelease ? text.Substring(0, dash) : text, out var version)) return;
+            if (version.Build < 0) version = new System.Version(version.Major, version.Minor, 0);
+
+            available = version >= new System.Version(0, 7, 2);
+            is3OrLater = version > new System.Version(3, 0, 0) || (version == new System.Version(3, 0, 0) && !isPreRelease);
         }
 
         private void Update()
@@ -242,6 +337,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
         private void OnDisable()
         {
+            UnityEditor.PackageManager.Events.registeredPackages -= OnRegisteredPackages;
             if (enabled && !ProjectRenderQueue.SceneIsChanged() && !EditorApplication.isPlayingOrWillChangePlaymode)
             {
                 Disable();
