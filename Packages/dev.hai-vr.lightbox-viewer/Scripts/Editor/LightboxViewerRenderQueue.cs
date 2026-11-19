@@ -51,6 +51,7 @@ namespace Hai.LightboxViewer.Scripts.Editor
         private bool _foundDefinition;
         private GameObject _previousOriginalObject;
         private GameObject _copiedObject;
+        private readonly Dictionary<Renderer, Renderer> _copiedRenderers = new Dictionary<Renderer, Renderer>();
 
         // Reused across renders, instead of being created and destroyed for every render.
         private Camera _reusableCamera;
@@ -519,85 +520,15 @@ namespace Hai.LightboxViewer.Scripts.Editor
 
             Object.DestroyImmediate(_copiedObject);
             _copiedObject = null;
+            _copiedRenderers.Clear();
             InvalidateConflictCandidates();
             _previousOriginalObject = null;
         }
 
-        private static GameObject CreateCopy(GameObject originalAvatarGo)
+        /// Creates the copy of the object that is rendered in Edit Mode. See LightboxViewerCopyBuilder.
+        private GameObject CreateCopy(GameObject originalAvatarGo)
         {
-            var visibilityStructure = new List<List<int>>();
-            CreateVisibilityStructure(originalAvatarGo.transform, visibilityStructure, new List<int>());
-            
-            var copy = new GameObject
-            {
-                name = "LightboxAvatarHolder",
-                transform =
-                {
-                    position = originalAvatarGo.transform.position,
-                    rotation = originalAvatarGo.transform.rotation,
-                    localScale = originalAvatarGo.transform.localScale
-                }
-            };
-            copy.SetActive(false);
-
-            var innerCopy = Object.Instantiate(originalAvatarGo, copy.transform, true);
-            var allMonoBehaviours = innerCopy.GetComponentsInChildren<MonoBehaviour>(true);
-            foreach (var monoBehaviourNullable in allMonoBehaviours)
-            {
-                // GetComponentsInChildren may return null MonoBehaviour if their script can't be loaded
-                if (monoBehaviourNullable != null)
-                {
-                    Object.DestroyImmediate(monoBehaviourNullable);
-                }
-            }
-
-            // Animators are slow because they rebind when the object is re-enabled. Don't bother doing this.
-            var allAnimators = innerCopy.GetComponentsInChildren<Animator>(true);
-            foreach (var animator in allAnimators)
-            {
-                Object.DestroyImmediate(animator);
-            }
-            
-            // The two following instructions must be in this order
-            innerCopy.SetActive(true);
-            ToggleBasedOnVisibility(innerCopy.transform, visibilityStructure);
-
-            copy.hideFlags = HideFlags.HideAndDontSave;
-
-            return copy;
-        }
-
-        private static void CreateVisibilityStructure(Transform originalTransform, List<List<int>> output, List<int> current)
-        {
-            // SceneVisibilityManager.instance.IsHidden is not copied when a copy is instantiated, so we need to
-            // encode the children positions and reapply them to the copy.
-            
-            for (var i = 0; i < originalTransform.childCount; i++)
-            {
-                var thatChild = originalTransform.GetChild(i);
-                if (SceneVisibilityManager.instance.IsHidden(thatChild.gameObject))
-                {
-                    output.Add(current.Concat(new []{ i }).ToList());
-                }
-
-                if (thatChild.childCount > 0)
-                {
-                    CreateVisibilityStructure(thatChild, output, current.Concat(new []{ i }).ToList());
-                }
-            }
-        }
-
-        private static void ToggleBasedOnVisibility(Transform copyTransform, List<List<int>> visibilityStructure)
-        {
-            foreach (List<int> toggleOff in visibilityStructure)
-            {
-                Transform t = copyTransform;
-                foreach (var i in toggleOff)
-                {
-                    t = t.GetChild(i);
-                }
-                t.gameObject.SetActive(false);
-            }
+            return LightboxViewerCopyBuilder.Build(originalAvatarGo, _copiedRenderers);
         }
 
         private void Render(GameObject copy)
